@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun } from 'lucide-react'
+import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, Activity } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const Navbar = () => {
@@ -11,6 +11,7 @@ const Navbar = () => {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
+    { path: '/live-market', label: 'Live Market', icon: Activity },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },

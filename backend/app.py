@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.fetch_data import fetch_stock_data
 from utils.sentiment_volatility import analyze_market_sentiment, calculate_atr_volatility
 from utils.explainability import generate_prediction_reasoning
+from utils.market_overview import get_market_indices, generate_market_summary, get_top_gainers_losers
 from utils.weather_alerts import fetch_weather_alerts, get_disaster_impact_info
 from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
 from utils.confidence_calculator import get_confidence_explanation
@@ -24,6 +25,11 @@ from strategies.rsi_strategy import rsi_strategy
 from strategies.macd_strategy import macd_strategy
 from strategies.bollinger_scalping import bollinger_scalping_strategy
 from strategies.supertrend import supertrend_strategy
+from strategies.ichimoku_strategy import ichimoku_strategy
+from strategies.adx_dmi_strategy import adx_dmi_strategy
+from strategies.vwap_strategy import vwap_strategy
+from strategies.breakout_strategy import breakout_strategy
+from strategies.ml_lstm_strategy import ml_lstm_strategy
 
 # Import models
 from models.lstm_model import lstm_predict
@@ -67,7 +73,12 @@ STRATEGIES = {
     'rsi': rsi_strategy,
     'macd': macd_strategy,
     'bollinger_scalping': bollinger_scalping_strategy,
-    'supertrend': supertrend_strategy
+    'supertrend': supertrend_strategy,
+    'ichimoku': ichimoku_strategy,
+    'adx_dmi': adx_dmi_strategy,
+    'vwap': vwap_strategy,
+    'breakout': breakout_strategy,
+    'ml_lstm': ml_lstm_strategy
 }
 
 # Model mapping
@@ -342,6 +353,46 @@ def market_summary():
         summary = get_market_summary(symbols)
         return jsonify(summary)
     
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/market-indices', methods=['GET'])
+def market_indices():
+    """Get major market indices data with mini charts"""
+    try:
+        indices = get_market_indices()
+        return jsonify(indices)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/market-overview', methods=['GET'])
+def market_overview():
+    """Get complete market overview with indices and summary"""
+    try:
+        indices = get_market_indices()
+        summary = generate_market_summary()
+        return jsonify({
+            'indices': indices,
+            'summary': summary
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/top-movers', methods=['GET'])
+def top_movers():
+    """
+    Get top gainers and losers
+    
+    Query Parameters:
+        market: 'US' or 'IN' (default: 'US')
+        limit: Number of stocks (default: 5)
+    """
+    try:
+        market = request.args.get('market', 'US').upper()
+        limit = int(request.args.get('limit', 5))
+        
+        movers = get_top_gainers_losers(market=market, limit=limit)
+        return jsonify(movers)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
