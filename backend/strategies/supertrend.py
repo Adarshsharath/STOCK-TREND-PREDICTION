@@ -61,15 +61,29 @@ def supertrend_strategy(df, period=10, multiplier=3):
     # Calculate SuperTrend
     df['supertrend'], df['direction'] = calculate_supertrend(df, period, multiplier)
     
-    # Generate signals
-    df['signal'] = df['direction']
+    # Calculate previous direction for crossover detection
+    df['direction_prev'] = df['direction'].shift(1)
     
-    # Detect crossovers
-    df['position'] = df['signal'].diff()
+    # Generate signals - detect direction changes
+    df['signal'] = 0
+    
+    # Buy signal: Direction changes from -1 to 1 (price crosses above SuperTrend)
+    buy_condition = (df['direction_prev'] == -1) & (df['direction'] == 1)
+    df.loc[buy_condition, 'signal'] = 1
+    
+    # Sell signal: Direction changes from 1 to -1 (price crosses below SuperTrend)
+    sell_condition = (df['direction_prev'] == 1) & (df['direction'] == -1)
+    df.loc[sell_condition, 'signal'] = -1
     
     # Extract buy and sell points
-    buy_signals = df[df['position'] == 2].copy()
-    sell_signals = df[df['position'] == -2].copy()
+    buy_signals = df[df['signal'] == 1].copy()
+    sell_signals = df[df['signal'] == -1].copy()
+    
+    # Add trend strength to signals (distance from SuperTrend)
+    buy_signals['trend_strength'] = ((buy_signals['close'] - buy_signals['supertrend']) / 
+                                     buy_signals['close'] * 100)
+    sell_signals['trend_strength'] = ((buy_signals['supertrend'] - sell_signals['close']) / 
+                                      sell_signals['close'] * 100)
     
     return {
         'data': df.to_dict('records'),

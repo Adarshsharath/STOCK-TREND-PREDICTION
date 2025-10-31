@@ -31,17 +31,40 @@ def bollinger_scalping_strategy(df, period=20, std_dev=2):
     # Calculate Bollinger Bands
     df['sma'], df['upper_band'], df['lower_band'] = calculate_bollinger_bands(df['close'], period, std_dev)
     
+    # Calculate band width for squeeze detection
+    df['band_width'] = (df['upper_band'] - df['lower_band']) / df['sma']
+    df['band_width_prev'] = df['band_width'].shift(1)
+    
+    # Calculate previous close for crossover detection
+    df['close_prev'] = df['close'].shift(1)
+    
     # Generate signals
     df['signal'] = 0
-    df.loc[df['close'] <= df['lower_band'], 'signal'] = 1  # Buy (price at lower band)
-    df.loc[df['close'] >= df['upper_band'], 'signal'] = -1  # Sell (price at upper band)
     
-    # Detect crossovers (when price first touches bands)
-    df['position'] = df['signal'].diff()
+    # Buy signal: Price crosses below lower band (was above, now below or touching)
+    buy_condition = (df['close_prev'] > df['lower_band'].shift(1)) & (df['close'] <= df['lower_band'])
+    df.loc[buy_condition, 'signal'] = 1
     
-    # Extract buy and sell crossover points only
-    buy_signals = df[df['position'] == 1].copy()  # First touch of lower band
-    sell_signals = df[df['position'] == -1].copy()  # First touch of upper band
+    # Sell signal: Price crosses above upper band (was below, now above or touching)
+    sell_condition = (df['close_prev'] < df['upper_band'].shift(1)) & (df['close'] >= df['upper_band'])
+    df.loc[sell_condition, 'signal'] = -1
+    
+    # Additional signals: Mean reversion from bands back to SMA
+    mean_reversion_buy = (df['close_prev'] <= df['lower_band'].shift(1)) & (df['close'] > df['lower_band']) & (df['close'] < df['sma'])
+    mean_reversion_sell = (df['close_prev'] >= df['upper_band'].shift(1)) & (df['close'] < df['upper_band']) & (df['close'] > df['sma'])
+    
+    df.loc[mean_reversion_buy & (df['signal'] == 0), 'signal'] = 1
+    df.loc[mean_reversion_sell & (df['signal'] == 0), 'signal'] = -1
+    
+    # Extract buy and sell points
+    buy_signals = df[df['signal'] == 1].copy()
+    sell_signals = df[df['signal'] == -1].copy()
+    
+    # Add band position percentage to signals
+    buy_signals['band_position'] = ((buy_signals['close'] - buy_signals['lower_band']) / 
+                                     (buy_signals['upper_band'] - buy_signals['lower_band']) * 100)
+    sell_signals['band_position'] = ((sell_signals['close'] - sell_signals['lower_band']) / 
+                                      (sell_signals['upper_band'] - sell_signals['lower_band']) * 100)
     
     return {
         'data': df.to_dict('records'),

@@ -1,230 +1,122 @@
 import React, { useState } from 'react'
-import { Search, Loader2, LineChart, Activity } from 'lucide-react'
-import axios from 'axios'
-import StrategyChart from '../components/StrategyChart'
-import InfoCard from '../components/InfoCard'
-import WeatherAlerts from '../components/WeatherAlerts'
-import NewsSentiment from '../components/NewsSentiment'
-import SignalStrength from '../components/SignalStrength'
-import MarketValuation from '../components/MarketValuation'
-import StrategyComparison from '../components/StrategyComparison'
-
-const STRATEGIES = [
-  { id: 'ema_crossover', name: 'EMA Crossover' },
-  { id: 'rsi', name: 'RSI Strategy' },
-  { id: 'macd', name: 'MACD Strategy' },
-  { id: 'bollinger_scalping', name: 'Bollinger Scalping' },
-  { id: 'supertrend', name: 'SuperTrend' }
-]
+import { useNavigate } from 'react-router-dom'
+import { Search, TrendingUp, ChevronRight, Filter } from 'lucide-react'
+import { strategiesData } from '../data/strategiesData'
 
 const Strategies = () => {
-  const [selectedStrategy, setSelectedStrategy] = useState('ema_crossover')
-  const [symbol, setSymbol] = useState('AAPL')
-  const [period, setPeriod] = useState('1y')
-  const [loading, setLoading] = useState(false)
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
+  const navigate = useNavigate()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
 
-  const fetchStrategy = async () => {
-    if (!symbol.trim()) {
-      setError('Please enter a stock symbol')
-      return
-    }
+  // Get unique categories
+  const categories = ['all', ...new Set(strategiesData.map(s => s.category))]
 
-    setLoading(true)
-    setError(null)
-    setData(null)
+  // Filter strategies
+  const filteredStrategies = strategiesData.filter(strategy => {
+    const matchesSearch = strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         strategy.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || strategy.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
 
-    try {
-      const response = await axios.get('/api/strategy', {
-        params: {
-          name: selectedStrategy,
-          symbol: symbol.toUpperCase(),
-          period
-        },
-        timeout: 60000 // 60 second timeout
-      })
-
-      if (response.data && response.data.data) {
-        setData(response.data)
-      } else {
-        setError('Invalid response from server')
-      }
-    } catch (err) {
-      console.error('Strategy fetch error:', err)
-      if (err.code === 'ECONNABORTED') {
-        setError('Request timeout - please try a shorter period or different symbol')
-      } else if (err.response?.data?.error) {
-        setError(err.response.data.error)
-      } else if (err.message) {
-        setError(`Error: ${err.message}`)
-      } else {
-        setError('Failed to fetch strategy data. Please check if backend is running.')
-      }
-      setData(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    fetchStrategy()
+  const handleStrategyClick = (strategyId) => {
+    navigate(`/strategies/${strategyId}`)
   }
 
   return (
     <div className="space-y-6">
-      {/* Weather Alerts */}
-      <WeatherAlerts />
-      
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">
-          <LineChart className="w-6 h-6" />
-          <span className="text-sm font-medium">Trading Strategy Analysis</span>
+          <TrendingUp className="w-6 h-6" />
+          <span className="text-sm font-medium">Professional Trading Strategies</span>
         </div>
         <h1 className="text-4xl font-bold mb-2">Trading Strategies</h1>
-        <p className="text-white text-opacity-90">
-          Backtest and visualize professional trading strategies on real market data
+        <p className="text-white text-opacity-90 text-lg">
+          Analyze stocks with 10 powerful trading strategies. Each with multiple sub-strategies and timeframes.
         </p>
       </div>
 
-      {/* Controls */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 shadow-card">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-text mb-2">Strategy</label>
+      {/* Search and Filter */}
+      <div className="bg-white rounded-xl p-6 shadow-card">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search strategies..."
+              className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted" />
             <select
-              value={selectedStrategy}
-              onChange={(e) => setSelectedStrategy(e.target.value)}
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
             >
-              {STRATEGIES.map(strategy => (
-                <option key={strategy.id} value={strategy.id}>
-                  {strategy.name}
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat === 'all' ? 'All Categories' : cat}
                 </option>
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text mb-2">Stock Symbol</label>
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="e.g., AAPL, TSLA"
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text mb-2">Period</label>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="1mo">1 Month</option>
-              <option value="3mo">3 Months</option>
-              <option value="6mo">6 Months</option>
-              <option value="1y">1 Year</option>
-              <option value="2y">2 Years</option>
-              <option value="5y">5 Years</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Analyzing...</span>
-                </>
-              ) : (
-                <>
-                  <Activity className="w-5 h-5" />
-                  <span>Analyze</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
-      </form>
+      </div>
 
-      {/* Market Info & Strategy Analysis - Shows BELOW form, BEFORE clicking Analyze */}
-      {symbol && selectedStrategy && !data && !loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <MarketValuation symbol={symbol} />
-          <NewsSentiment symbol={symbol} />
-          <StrategyComparison currentStrategy={selectedStrategy} />
-        </div>
-      )}
-
-      {/* Loading Message */}
-      {loading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-blue-800 font-medium">Analyzing {symbol} with {STRATEGIES.find(s => s.id === selectedStrategy)?.name}...</p>
-          <p className="text-blue-600 text-sm mt-2">This may take 10-30 seconds depending on the period selected.</p>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && !loading && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-red-800 font-medium">{error}</p>
-          <p className="text-red-600 text-sm mt-2">Try a different symbol or shorter period, or check if the backend is running.</p>
-        </div>
-      )}
-
-      {/* Results */}
-      {data && (
-        <>
-          {/* Main Strategy Results */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <StrategyChart
-                data={data.data}
-                buySignals={data.buy_signals}
-                sellSignals={data.sell_signals}
-                strategyName={data.metadata.name}
-              />
-            </div>
-            <div className="space-y-4">
-              <InfoCard
-                title={data.metadata.name}
-                description={data.metadata.description}
-                parameters={data.metadata.parameters}
-              />
-              <div className="bg-white rounded-xl p-6 shadow-card">
-                <h3 className="text-lg font-semibold text-text mb-4">Signal Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                    <span className="text-sm font-medium text-text">Buy Signals</span>
-                    <span className="text-xl font-bold text-success">{data.buy_signals.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                    <span className="text-sm font-medium text-text">Sell Signals</span>
-                    <span className="text-xl font-bold text-danger">{data.sell_signals.length}</span>
-                  </div>
+      {/* Strategy Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredStrategies.map(strategy => (
+          <div
+            key={strategy.id}
+            onClick={() => handleStrategyClick(strategy.id)}
+            className="group bg-white rounded-xl p-6 shadow-card hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-primary"
+          >
+            {/* Icon and Name */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`bg-gradient-to-r ${strategy.color} w-12 h-12 rounded-lg flex items-center justify-center text-2xl`}>
+                  {strategy.icon}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-text group-hover:text-primary transition-colors">
+                    {strategy.name}
+                  </h3>
+                  <p className="text-xs text-text-muted">{strategy.category}</p>
                 </div>
               </div>
+              <ChevronRight className="w-5 h-5 text-text-muted group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
+
+            {/* Description */}
+            <p className="text-sm text-text-light mb-4 line-clamp-2">
+              {strategy.description}
+            </p>
+
+            {/* Sub-strategies count */}
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <span className="text-xs text-text-muted">
+                {strategy.subStrategies.length} Sub-Strategies
+              </span>
+              <span className="text-xs font-semibold text-primary">
+                Explore →
+              </span>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* AI Analysis Section */}
-          <div className="mt-6">
-            <SignalStrength 
-              buySignals={data.buy_signals} 
-              sellSignals={data.sell_signals}
-            />
-          </div>
-        </>
+      {/* No results */}
+      {filteredStrategies.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-text-muted">No strategies found matching your search.</p>
+        </div>
       )}
     </div>
   )

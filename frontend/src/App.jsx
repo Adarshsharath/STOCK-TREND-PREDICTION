@@ -3,9 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Strategies from './pages/Strategies'
+import StrategyDetail from './pages/StrategyDetail'
 import Predictions from './pages/Predictions'
 import Dashboard from './pages/Dashboard'
 import About from './pages/About'
+import LiveMarket from './pages/LiveMarket'
 import Chatbot from './components/Chatbot'
 import { ChatProvider } from './context/ChatContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -20,7 +22,9 @@ function App() {
           <main className="container mx-auto px-6 py-8">
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/live-market" element={<LiveMarket />} />
               <Route path="/strategies" element={<Strategies />} />
+              <Route path="/strategies/:strategyId" element={<StrategyDetail />} />
               <Route path="/predictions" element={<Predictions />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/about" element={<About />} />
