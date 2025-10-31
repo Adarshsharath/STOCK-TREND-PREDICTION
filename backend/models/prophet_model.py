@@ -15,9 +15,13 @@ def prophet_predict(df, forecast_days=30):
         dict with predictions, actual values, and metrics
     """
     try:
-        # Prepare data for Prophet
+        # Prepare data for Prophet (remove timezone as Prophet doesn't support it)
+        dates = pd.to_datetime(df['date'])
+        if dates.dt.tz is not None:
+            dates = dates.dt.tz_localize(None)
+        
         prophet_df = pd.DataFrame({
-            'ds': pd.to_datetime(df['date']),
+            'ds': dates,
             'y': df['close']
         })
         

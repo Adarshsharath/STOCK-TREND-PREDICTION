@@ -24,6 +24,13 @@ A comprehensive FinTech dashboard combining technical trading strategies, ML-bas
 - Market analysis and trading advice
 - Persistent chat across all pages
 
+### 4. Weather & Disaster Alerts 🌪️ **NEW**
+- Real-time weather monitoring in major financial centers
+- Natural disaster alerts (hurricanes, earthquakes, floods, etc.)
+- Market impact assessment
+- Investment risk warnings based on severe weather
+- Monitors: New York, London, Tokyo, Hong Kong, Mumbai, and more
+
 ## 🚀 Tech Stack
 
 ### Frontend
@@ -81,10 +88,13 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-6. Add your Perplexity API key to `.env`:
+6. Add your API keys to `.env`:
 ```
 PERPLEXITY_API_KEY=your_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here  # Optional but recommended
 ```
+
+Get your OpenWeather API key from [OpenWeatherMap](https://openweathermap.org/api) (Free tier: 1,000 calls/day)
 
 7. Run the Flask server:
 ```bash
@@ -162,6 +172,23 @@ POST /api/chatbot
 }
 ```
 
+### Weather Alerts Endpoint 🌪️ **NEW**
+```
+GET /api/weather-alerts?city={city}
+```
+
+**Parameters:**
+- `city` (optional): Specific city to check (e.g., "New York", "Tokyo")
+
+**Returns:** Real-time weather alerts and natural disaster warnings for major financial centers with market impact assessment.
+
+### Disaster Impact Info
+```
+GET /api/disaster-impact-info
+```
+
+Returns information about how different disaster types impact markets.
+
 ### List Endpoints
 ```
 GET /api/strategies  # List all available strategies
@@ -238,10 +265,13 @@ STOCK_TREND/
 │   ├── chatbot/
 │   │   └── perplexity_bot.py  # AI chatbot
 │   └── utils/
-│       └── fetch_data.py      # Data utilities
+│       ├── fetch_data.py      # Data utilities
+│       └── weather_alerts.py  # Weather alerts (NEW)
 ├── frontend/
 │   ├── src/
 │   │   ├── components/        # React components
+│   │   │   ├── WeatherAlerts.jsx  # Weather alerts (NEW)
+│   │   │   └── ...
 │   │   ├── pages/             # Page components
 │   │   ├── context/           # React context
 │   │   ├── App.jsx
@@ -267,6 +297,7 @@ This application is for educational and informational purposes only. It should n
 
 - [yfinance](https://github.com/ranaroussi/yfinance) for stock data
 - [Perplexity AI](https://www.perplexity.ai/) for chatbot capabilities
+- [OpenWeatherMap](https://openweathermap.org/) for weather alerts
 - [Plotly](https://plotly.com/) for interactive charts
 - [TailwindCSS](https://tailwindcss.com/) for styling
 

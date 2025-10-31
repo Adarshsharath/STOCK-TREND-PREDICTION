@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Users, TrendingUp, TrendingDown, Activity, DollarSign } from 'lucide-react'
 import axios from 'axios'
+import WeatherAlerts from '../components/WeatherAlerts'
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -12,6 +13,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Weather Alerts */}
+      <WeatherAlerts />
+      
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">

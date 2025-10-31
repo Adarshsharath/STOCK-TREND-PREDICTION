@@ -36,9 +36,12 @@ def bollinger_scalping_strategy(df, period=20, std_dev=2):
     df.loc[df['close'] <= df['lower_band'], 'signal'] = 1  # Buy (price at lower band)
     df.loc[df['close'] >= df['upper_band'], 'signal'] = -1  # Sell (price at upper band)
     
-    # Extract buy and sell points
-    buy_signals = df[df['signal'] == 1].copy()
-    sell_signals = df[df['signal'] == -1].copy()
+    # Detect crossovers (when price first touches bands)
+    df['position'] = df['signal'].diff()
+    
+    # Extract buy and sell crossover points only
+    buy_signals = df[df['position'] == 1].copy()  # First touch of lower band
+    sell_signals = df[df['position'] == -1].copy()  # First touch of upper band
     
     return {
         'data': df.to_dict('records'),

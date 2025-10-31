@@ -37,12 +37,12 @@ def rsi_strategy(df, period=14, oversold=30, overbought=70):
     df.loc[df['rsi'] < oversold, 'signal'] = 1  # Buy (oversold)
     df.loc[df['rsi'] > overbought, 'signal'] = -1  # Sell (overbought)
     
-    # Detect crossovers
+    # Detect crossovers (when signal changes from 0 to 1 or 0 to -1)
     df['position'] = df['signal'].diff()
     
-    # Extract buy and sell points
-    buy_signals = df[df['signal'] == 1].copy()
-    sell_signals = df[df['signal'] == -1].copy()
+    # Extract buy and sell crossover points only
+    buy_signals = df[df['position'] == 1].copy()  # Changed from == 1 to detect entry
+    sell_signals = df[df['position'] == -1].copy()  # Changed from == -1 to detect entry
     
     return {
         'data': df.to_dict('records'),

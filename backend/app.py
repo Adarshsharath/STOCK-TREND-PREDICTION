@@ -3,12 +3,17 @@ from flask_cors import CORS
 from flask_caching import Cache
 import sys
 import os
+import numpy as np
+import pandas as pd
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import utilities
 from utils.fetch_data import fetch_stock_data
+from utils.weather_alerts import fetch_weather_alerts, get_disaster_impact_info
+from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
+from utils.confidence_calculator import get_confidence_explanation
 
 # Import strategies
 from strategies.ema_crossover import ema_crossover_strategy
@@ -33,6 +38,25 @@ CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # Configure caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
+
+def clean_nan_values(obj):
+    """
+    Recursively replace NaN, Infinity with None for valid JSON serialization
+    """
+    if isinstance(obj, dict):
+        return {key: clean_nan_values(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nan_values(item) for item in obj]
+    elif isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, (np.integer, np.floating)):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj) if isinstance(obj, np.floating) else int(obj)
+    else:
+        return obj
 
 # Strategy mapping
 STRATEGIES = {
@@ -85,6 +109,9 @@ def get_strategy():
         strategy_func = STRATEGIES[strategy_name]
         result = strategy_func(df)
         
+        # Clean NaN values for valid JSON
+        result = clean_nan_values(result)
+        
         return jsonify(result)
     
     except Exception as e:
@@ -117,6 +144,9 @@ def get_prediction():
         # Apply model
         model_func = MODELS[model_name]
         result = model_func(df)
+        
+        # Clean NaN values for valid JSON
+        result = clean_nan_values(result)
         
         return jsonify(result)
     
@@ -174,6 +204,61 @@ def list_models():
             {'id': 'xgboost', 'name': 'XGBoost', 'description': 'Extreme Gradient Boosting model'}
         ]
     })
+
+@app.route('/api/weather-alerts', methods=['GET'])
+def get_weather_alerts():
+    """
+    Get weather and natural disaster alerts for major financial centers
+    
+    Query Parameters:
+        city: Specific city to check (optional)
+    """
+    try:
+        city = request.args.get('city', None)
+        alerts = fetch_weather_alerts(city)
+        return jsonify(alerts)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/disaster-impact-info', methods=['GET'])
+def disaster_impact_info():
+    """Get information about how disasters impact markets"""
+    return jsonify(get_disaster_impact_info())
+
+@app.route('/api/news-sentiment', methods=['GET'])
+def get_news_sentiment():
+    """
+    Get news sentiment analysis for a stock
+    
+    Query Parameters:
+        symbol: Stock symbol (required)
+        days: Number of days to look back (default: 7)
+        page_size: Number of articles (default: 10)
+    """
+    try:
+        symbol = request.args.get('symbol', '').upper()
+        days = int(request.args.get('days', 7))
+        page_size = int(request.args.get('page_size', 10))
+        
+        if not symbol:
+            return jsonify({'error': 'Symbol is required'}), 400
+        
+        sentiment = fetch_news_sentiment(symbol, days, page_size)
+        return jsonify(sentiment)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sentiment-info', methods=['GET'])
+def sentiment_info():
+    """Get information about sentiment analysis"""
+    return jsonify(get_sentiment_summary())
+
+@app.route('/api/confidence-info', methods=['GET'])
+def confidence_info():
+    """Get information about confidence score calculation"""
+    return jsonify(get_confidence_explanation())
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

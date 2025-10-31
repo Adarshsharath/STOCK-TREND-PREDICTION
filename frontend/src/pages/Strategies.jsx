@@ -3,6 +3,9 @@ import { Search, Loader2, LineChart, Activity } from 'lucide-react'
 import axios from 'axios'
 import StrategyChart from '../components/StrategyChart'
 import InfoCard from '../components/InfoCard'
+import WeatherAlerts from '../components/WeatherAlerts'
+import NewsSentiment from '../components/NewsSentiment'
+import SignalStrength from '../components/SignalStrength'
 
 const STRATEGIES = [
   { id: 'ema_crossover', name: 'EMA Crossover' },
@@ -69,6 +72,9 @@ const Strategies = () => {
 
   return (
     <div className="space-y-6">
+      {/* Weather Alerts */}
+      <WeatherAlerts />
+      
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">
@@ -167,36 +173,51 @@ const Strategies = () => {
 
       {/* Results */}
       {data && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <StrategyChart
-              data={data.data}
-              buySignals={data.buy_signals}
-              sellSignals={data.sell_signals}
-              strategyName={data.metadata.name}
-            />
-          </div>
-          <div className="space-y-4">
-            <InfoCard
-              title={data.metadata.name}
-              description={data.metadata.description}
-              parameters={data.metadata.parameters}
-            />
-            <div className="bg-white rounded-xl p-6 shadow-card">
-              <h3 className="text-lg font-semibold text-text mb-4">Signal Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="text-sm font-medium text-text">Buy Signals</span>
-                  <span className="text-xl font-bold text-success">{data.buy_signals.length}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                  <span className="text-sm font-medium text-text">Sell Signals</span>
-                  <span className="text-xl font-bold text-danger">{data.sell_signals.length}</span>
+        <>
+          {/* Main Strategy Results */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <StrategyChart
+                data={data.data}
+                buySignals={data.buy_signals}
+                sellSignals={data.sell_signals}
+                strategyName={data.metadata.name}
+              />
+            </div>
+            <div className="space-y-4">
+              <InfoCard
+                title={data.metadata.name}
+                description={data.metadata.description}
+                parameters={data.metadata.parameters}
+              />
+              <div className="bg-white rounded-xl p-6 shadow-card">
+                <h3 className="text-lg font-semibold text-text mb-4">Signal Summary</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                    <span className="text-sm font-medium text-text">Buy Signals</span>
+                    <span className="text-xl font-bold text-success">{data.buy_signals.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="text-sm font-medium text-text">Sell Signals</span>
+                    <span className="text-xl font-bold text-danger">{data.sell_signals.length}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* AI Analysis Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Signal Strength */}
+            <SignalStrength 
+              buySignals={data.buy_signals} 
+              sellSignals={data.sell_signals}
+            />
+            
+            {/* News Sentiment */}
+            <NewsSentiment symbol={symbol} />
+          </div>
+        </>
       )}
     </div>
   )
