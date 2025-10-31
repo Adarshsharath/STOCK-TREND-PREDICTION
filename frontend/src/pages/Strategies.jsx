@@ -6,6 +6,8 @@ import InfoCard from '../components/InfoCard'
 import WeatherAlerts from '../components/WeatherAlerts'
 import NewsSentiment from '../components/NewsSentiment'
 import SignalStrength from '../components/SignalStrength'
+import MarketValuation from '../components/MarketValuation'
+import StrategyComparison from '../components/StrategyComparison'
 
 const STRATEGIES = [
   { id: 'ema_crossover', name: 'EMA Crossover' },
@@ -154,6 +156,15 @@ const Strategies = () => {
         </div>
       </form>
 
+      {/* Market Info & Strategy Analysis - Shows BELOW form, BEFORE clicking Analyze */}
+      {symbol && selectedStrategy && !data && !loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <MarketValuation symbol={symbol} />
+          <NewsSentiment symbol={symbol} />
+          <StrategyComparison currentStrategy={selectedStrategy} />
+        </div>
+      )}
+
       {/* Loading Message */}
       {loading && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
@@ -207,15 +218,11 @@ const Strategies = () => {
           </div>
 
           {/* AI Analysis Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* Signal Strength */}
+          <div className="mt-6">
             <SignalStrength 
               buySignals={data.buy_signals} 
               sellSignals={data.sell_signals}
             />
-            
-            {/* News Sentiment */}
-            <NewsSentiment symbol={symbol} />
           </div>
         </>
       )}

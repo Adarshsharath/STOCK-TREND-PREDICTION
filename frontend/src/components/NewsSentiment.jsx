@@ -6,7 +6,7 @@ const NewsSentiment = ({ symbol }) => {
   const [sentiment, setSentiment] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true) // Changed to true - show by default
 
   useEffect(() => {
     if (symbol) {
