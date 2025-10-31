@@ -3,6 +3,7 @@ import { Brain, Loader2, Search } from 'lucide-react'
 import axios from 'axios'
 import PredictionChart from '../components/PredictionChart'
 import InfoCard from '../components/InfoCard'
+import WeatherAlerts from '../components/WeatherAlerts'
 
 const MODELS = [
   { id: 'lstm', name: 'LSTM' },
@@ -69,6 +70,9 @@ const Predictions = () => {
 
   return (
     <div className="space-y-6">
+      {/* Weather Alerts */}
+      <WeatherAlerts />
+      
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">
