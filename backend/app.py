@@ -11,9 +11,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import utilities
 from utils.fetch_data import fetch_stock_data
+from utils.sentiment_volatility import analyze_market_sentiment, calculate_atr_volatility
+from utils.explainability import generate_prediction_reasoning
 from utils.weather_alerts import fetch_weather_alerts, get_disaster_impact_info
 from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
 from utils.confidence_calculator import get_confidence_explanation
+from utils.market_data import fetch_market_valuation, get_market_summary
 
 # Import strategies
 from strategies.ema_crossover import ema_crossover_strategy
@@ -145,6 +148,18 @@ def get_prediction():
         model_func = MODELS[model_name]
         result = model_func(df)
         
+        # Generate AI reasoning/explainability
+        reasoning = generate_prediction_reasoning(
+            df=df,
+            predictions=result.get('predictions', []),
+            actual=result.get('actual', []),
+            metrics=result.get('metrics', {}),
+            model_name=result.get('metadata', {}).get('name', model_name.upper())
+        )
+        
+        # Add reasoning to result
+        result['reasoning'] = reasoning
+        
         # Clean NaN values for valid JSON
         result = clean_nan_values(result)
         
@@ -205,6 +220,38 @@ def list_models():
         ]
     })
 
+@app.route('/api/sentiment-volatility', methods=['GET'])
+def get_sentiment_volatility():
+    """
+    Get market sentiment and volatility analysis
+    
+    Query Parameters:
+        symbol: Stock symbol (e.g., AAPL, INFY.NS)
+        period: Data period (default: 1y)
+    """
+    try:
+        symbol = request.args.get('symbol', 'AAPL').upper()
+        period = request.args.get('period', '1y')
+        
+        # Fetch stock data
+        df = fetch_stock_data(symbol, period=period)
+        
+        # Analyze sentiment
+        sentiment_data = analyze_market_sentiment(df)
+        
+        # Calculate volatility
+        volatility_data = calculate_atr_volatility(df)
+        
+        return jsonify({
+            'sentiment': sentiment_data,
+            'volatility': volatility_data,
+            'symbol': symbol,
+            'timestamp': df['date'].iloc[-1].isoformat() if hasattr(df['date'].iloc[-1], 'isoformat') else str(df['date'].iloc[-1])
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/weather-alerts', methods=['GET'])
 def get_weather_alerts():
     """
@@ -259,6 +306,44 @@ def sentiment_info():
 def confidence_info():
     """Get information about confidence score calculation"""
     return jsonify(get_confidence_explanation())
+
+@app.route('/api/market-valuation', methods=['GET'])
+def get_market_valuation():
+    """
+    Get real-time market valuation for a stock
+    
+    Query Parameters:
+        symbol: Stock symbol (required)
+    """
+    try:
+        symbol = request.args.get('symbol', '').upper()
+        
+        if not symbol:
+            return jsonify({'error': 'Symbol is required'}), 400
+        
+        valuation = fetch_market_valuation(symbol)
+        return jsonify(valuation)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/market-summary', methods=['GET'])
+def market_summary():
+    """
+    Get market summary for multiple stocks
+    
+    Query Parameters:
+        symbols: Comma-separated stock symbols (optional)
+    """
+    try:
+        symbols_param = request.args.get('symbols', 'AAPL,MSFT,GOOGL,TSLA,AMZN')
+        symbols = [s.strip().upper() for s in symbols_param.split(',')]
+        
+        summary = get_market_summary(symbols)
+        return jsonify(summary)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

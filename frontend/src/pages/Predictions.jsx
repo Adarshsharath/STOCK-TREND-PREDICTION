@@ -1,9 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Brain, Loader2, Search } from 'lucide-react'
 import axios from 'axios'
 import PredictionChart from '../components/PredictionChart'
 import InfoCard from '../components/InfoCard'
 import WeatherAlerts from '../components/WeatherAlerts'
+import ModelComparison from '../components/ModelComparison'
+import MarketSentimentPanel from '../components/MarketSentimentPanel'
+import VolatilityPredictor from '../components/VolatilityPredictor'
+import ExplainabilityPanel from '../components/ExplainabilityPanel'
 
 const MODELS = [
   { id: 'lstm', name: 'LSTM' },
@@ -20,6 +24,34 @@ const Predictions = () => {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const [sentimentVolatility, setSentimentVolatility] = useState(null)
+  const [svLoading, setSvLoading] = useState(false)
+
+  const fetchSentimentVolatility = async (stockSymbol) => {
+    setSvLoading(true)
+    try {
+      const response = await axios.get('/api/sentiment-volatility', {
+        params: {
+          symbol: stockSymbol.toUpperCase(),
+          period: '1y'
+        },
+        timeout: 30000
+      })
+      setSentimentVolatility(response.data)
+    } catch (err) {
+      console.error('Sentiment/Volatility fetch error:', err)
+      setSentimentVolatility(null)
+    } finally {
+      setSvLoading(false)
+    }
+  }
+
+  // Load sentiment/volatility when symbol changes
+  useEffect(() => {
+    if (symbol.trim()) {
+      fetchSentimentVolatility(symbol)
+    }
+  }, [symbol])
 
   const fetchPrediction = async () => {
     if (!symbol.trim()) {
@@ -38,7 +70,7 @@ const Predictions = () => {
           symbol: symbol.toUpperCase(),
           period
         },
-        timeout: 120000 // 120 second timeout for ML models
+        timeout: 120000
       })
 
       if (response.data && response.data.predictions) {
@@ -149,6 +181,16 @@ const Predictions = () => {
         </div>
       </form>
 
+      {/* Sentiment, Volatility, and Model Performance Analysis - Shows immediately */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <MarketSentimentPanel sentimentData={sentimentVolatility?.sentiment} />
+        <VolatilityPredictor volatilityData={sentimentVolatility?.volatility} />
+        <ModelComparison 
+          currentModel={selectedModel}
+          metrics={data?.metrics || null}
+        />
+      </div>
+
       {/* Loading Message */}
       {loading && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
@@ -168,24 +210,28 @@ const Predictions = () => {
 
       {/* Results */}
       {data && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <PredictionChart
-              predictions={data.predictions}
-              actual={data.actual}
-              dates={data.dates}
-              modelName={data.metadata.name}
-              metrics={data.metrics}
-            />
+        <>
+          {/* Main Prediction Results */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <PredictionChart
+                predictions={data.predictions}
+                actual={data.actual}
+                dates={data.dates}
+                modelName={data.metadata.name}
+                metrics={data.metrics}
+              />
+            </div>
+            <div className="space-y-6">
+              <ExplainabilityPanel reasoning={data.reasoning} />
+              <InfoCard
+                title={data.metadata.name}
+                description={data.metadata.description}
+                parameters={data.metadata.parameters}
+              />
+            </div>
           </div>
-          <div>
-            <InfoCard
-              title={data.metadata.name}
-              description={data.metadata.description}
-              parameters={data.metadata.parameters}
-            />
-          </div>
-        </div>
+        </>
       )}
     </div>
   )

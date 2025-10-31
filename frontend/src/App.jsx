@@ -8,12 +8,14 @@ import Dashboard from './pages/Dashboard'
 import About from './pages/About'
 import Chatbot from './components/Chatbot'
 import { ChatProvider } from './context/ChatContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
   return (
-    <ChatProvider>
-      <Router>
-        <div className="min-h-screen bg-background">
+    <ThemeProvider>
+      <ChatProvider>
+        <Router>
+          <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors">
           <Navbar />
           <main className="container mx-auto px-6 py-8">
             <Routes>
@@ -25,9 +27,10 @@ function App() {
             </Routes>
           </main>
           <Chatbot />
-        </div>
-      </Router>
-    </ChatProvider>
+          </div>
+        </Router>
+      </ChatProvider>
+    </ThemeProvider>
   )
 }
 
