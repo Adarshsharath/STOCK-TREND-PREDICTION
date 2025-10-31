@@ -49,12 +49,21 @@ def chat_with_perplexity(user_message, conversation_history=None):
             'Content-Type': 'application/json'
         }
         
+        # Try different model names in order of preference
+        models_to_try = [
+            'sonar-small-chat',
+            'sonar-medium-chat', 
+            'llama-3.1-sonar-small-128k-online',
+            'sonar'
+        ]
+        
         payload = {
-            'model': 'llama-3.1-sonar-small-128k-online',
+            'model': 'sonar',  # Updated to current Perplexity model
             'messages': messages,
-            'max_tokens': 500,
-            'temperature': 0.7,
-            'top_p': 0.9
+            'max_tokens': 1000,
+            'temperature': 0.2,
+            'top_p': 0.9,
+            'stream': False
         }
         
         response = requests.post(PERPLEXITY_API_URL, json=payload, headers=headers, timeout=30)
@@ -73,9 +82,20 @@ def chat_with_perplexity(user_message, conversation_history=None):
             'error': False
         }
     
+    except requests.exceptions.HTTPError as e:
+        error_msg = f'Perplexity API Error: {str(e)}'
+        try:
+            error_detail = e.response.json()
+            error_msg += f'\nDetails: {error_detail}'
+        except:
+            error_msg += f'\nResponse: {e.response.text}'
+        return {
+            'response': error_msg,
+            'error': True
+        }
     except requests.exceptions.RequestException as e:
         return {
-            'response': f'Error communicating with Perplexity AI: {str(e)}',
+            'response': f'Network error communicating with Perplexity AI: {str(e)}',
             'error': True
         }
     except Exception as e:
