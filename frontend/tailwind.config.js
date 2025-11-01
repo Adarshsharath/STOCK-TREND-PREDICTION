@@ -65,6 +65,7 @@ export default {
           bg: {
             primary: '#0A0E27',      // Deep space blue
             secondary: '#0F1420',    // Darker layer
+            tertiary: '#161A1D',     // Tertiary layer
             elevated: '#1A1F3A',     // Raised elements
             card: '#141B2D',         // Card background
             glass: 'rgba(26, 31, 58, 0.7)', // Glassmorphism
@@ -118,6 +119,7 @@ export default {
         'glass-hover': '0 8px 32px 0 rgba(31, 38, 135, 0.6)',
         
         // Neon Glows
+        'neon': '0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
         'neon-blue': '0 0 20px rgba(24, 144, 255, 0.5), 0 0 40px rgba(24, 144, 255, 0.3)',
         'neon-teal': '0 0 20px rgba(0, 212, 221, 0.5), 0 0 40px rgba(0, 212, 221, 0.3)',
         'neon-purple': '0 0 20px rgba(128, 40, 255, 0.5), 0 0 40px rgba(128, 40, 255, 0.3)',
@@ -126,6 +128,7 @@ export default {
         // Subtle Shadows
         'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+        'dark-card': '0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 10px rgba(139, 92, 246, 0.2)',
         'inner-glow': 'inset 0 0 20px rgba(24, 144, 255, 0.1)',
       },
       
