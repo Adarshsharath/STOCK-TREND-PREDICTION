@@ -26,6 +26,12 @@ def ema_crossover_strategy(df, short_period=9, long_period=21):
     """
     df = df.copy()
     
+    # Ensure date is a column, not index
+    if 'date' not in df.columns and df.index.name == 'date':
+        df.reset_index(inplace=True)
+    elif 'date' not in df.columns:
+        df['date'] = df.index
+    
     # Calculate EMAs
     df['ema_short'] = calculate_ema(df['close'], short_period)
     df['ema_long'] = calculate_ema(df['close'], long_period)

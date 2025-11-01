@@ -28,6 +28,12 @@ def bollinger_scalping_strategy(df, period=20, std_dev=2):
     """
     df = df.copy()
     
+    # Ensure date is a column, not index
+    if 'date' not in df.columns and df.index.name == 'date':
+        df.reset_index(inplace=True)
+    elif 'date' not in df.columns:
+        df['date'] = df.index
+    
     # Calculate Bollinger Bands
     df['sma'], df['upper_band'], df['lower_band'] = calculate_bollinger_bands(df['close'], period, std_dev)
     

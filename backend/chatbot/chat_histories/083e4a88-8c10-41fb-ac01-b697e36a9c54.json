@@ -1,0 +1,18 @@
+{
+  "id": "083e4a88-8c10-41fb-ac01-b697e36a9c54",
+  "title": "current price of reliance",
+  "created_at": "2025-11-01T22:23:13.240816",
+  "updated_at": "2025-11-01T22:23:19.969205",
+  "messages": [
+    {
+      "role": "user",
+      "content": "current price of reliance",
+      "timestamp": "2025-11-01T22:23:13.269449"
+    },
+    {
+      "role": "assistant",
+      "content": "The current price of Reliance Industries (as of November 1, 2025, 4:53 PM UTC) is **\u20b91,486.40**.\n\nThis is the latest traded price on the NSE/BSE, with a slight fluctuation around \u20b91,486\u2013\u20b91,488 in the last few days. The stock is trading near its 52-week high of \u20b91,551 and well above its 52-week low of \u20b91,114.85.\n\n**Key Details:**\n- **Market Cap:** \u20b920.11 lakh crore\n- **P/E Ratio:** ~20.65\u201321.42\n- **Dividend Yield:** 0.37%\n- **Sector:** Oil & Gas / Refineries & Marketing\n\nLet me know if you want a chart, technical analysis, or news impacting the stock.",
+      "timestamp": "2025-11-01T22:23:19.969046"
+    }
+  ]
+}

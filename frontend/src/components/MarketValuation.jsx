@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw, Building2 } from 'lucide-react'
 import axios from 'axios'
+import { getCurrencySymbol } from '../utils/currency'
 
 const MarketValuation = ({ symbol }) => {
   const [valuation, setValuation] = useState(null)
@@ -36,10 +37,11 @@ const MarketValuation = ({ symbol }) => {
 
   const formatNumber = (num, decimals = 2) => {
     if (!num) return 'N/A'
-    if (num >= 1e12) return `$${(num / 1e12).toFixed(decimals)}T`
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(decimals)}B`
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(decimals)}M`
-    return `$${num.toFixed(decimals)}`
+    const symbol = getCurrencySymbol()
+    if (num >= 1e12) return `${symbol}${(num / 1e12).toFixed(decimals)}T`
+    if (num >= 1e9) return `${symbol}${(num / 1e9).toFixed(decimals)}B`
+    if (num >= 1e6) return `${symbol}${(num / 1e6).toFixed(decimals)}M`
+    return `${symbol}${num.toFixed(decimals)}`
   }
 
   const formatPercent = (num) => {

@@ -1,18 +1,19 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, DollarSign } from 'lucide-react'
+import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, DollarSign, LogOut, User as UserIcon, Zap } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
 const Navbar = () => {
   const location = useLocation()
   const { isDark, toggleTheme } = useTheme()
+  const { user, isAuthenticated, logout } = useAuth()
 
   const isActive = (path) => location.pathname === path
 
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/finance', label: 'Finance', icon: DollarSign },
-    { path: '/live-simulation', label: 'Live Simulation', icon: TrendingUp },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -68,6 +69,31 @@ const Navbar = () => {
                 <Moon className="w-5 h-5 text-gray-700" />
               )}
             </button>
+
+            {/* User Section */}
+            {isAuthenticated ? (
+              <div className="ml-4 flex items-center space-x-3">
+                <div className="flex items-center space-x-2 px-3 py-1.5 bg-background-dark dark:bg-dark-bg-elevated rounded-lg border border-transparent dark:border-dark-border-light">
+                  <UserIcon className="w-4 h-4 text-primary dark:text-neon-purple" />
+                  <span className="text-sm font-medium text-text dark:text-dark-text">{user?.username}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all border border-transparent dark:border-red-800"
+                  aria-label="Logout"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="ml-4 px-4 py-2 bg-primary dark:bg-neon-purple text-white rounded-lg font-medium hover:shadow-lg dark:hover:shadow-neon transition-all"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

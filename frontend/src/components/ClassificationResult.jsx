@@ -25,9 +25,6 @@ const ClassificationResult = ({ data, symbol }) => {
             <div className={`text-6xl font-bold ${isUp ? 'text-neon-green' : 'text-red-100'}`}>
               {prediction.direction}
             </div>
-            <div className="text-sm text-white text-opacity-75 mt-1">
-              {prediction.confidence.toFixed(1)}% Confidence
-            </div>
           </div>
         </div>
 

@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_caching import Cache
+from flask_jwt_extended import JWTManager
 import sys
 import os
 import numpy as np
 import pandas as pd
+from datetime import timedelta
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -59,8 +61,21 @@ from chatbot.chat_history import (
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+jwt = JWTManager(app)
+
 # Configure caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
+
+# Initialize database
+from database import init_db
+init_db()
+
+# Register auth blueprint
+from auth import auth_bp
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
 def clean_nan_values(obj):
     """
@@ -468,6 +483,192 @@ def top_movers():
         return jsonify(movers)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stock-price', methods=['GET'])
+def get_stock_price():
+    """
+    Get current stock price with change and percentage
+    
+    Query Parameters:
+        symbol: Stock symbol (e.g., AAPL, RELIANCE.NS)
+    """
+    try:
+        symbol = request.args.get('symbol')
+        if not symbol:
+            return jsonify({'error': 'Symbol parameter is required'}), 400
+        
+        # Fetch recent data (last 2 days to calculate change)
+        df = fetch_stock_data(symbol, period='5d')
+        
+        if df is None or len(df) < 2:
+            return jsonify({'error': f'Unable to fetch data for {symbol}'}), 404
+        
+        # Get latest and previous close
+        current_price = float(df['close'].iloc[-1])
+        previous_close = float(df['close'].iloc[-2])
+        
+        # Calculate change
+        change = current_price - previous_close
+        change_percent = (change / previous_close) * 100
+        
+        return jsonify({
+            'symbol': symbol,
+            'price': current_price,
+            'previousClose': previous_close,
+            'change': change,
+            'changePercent': change_percent,
+            'timestamp': str(df.index[-1])
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simulator-data', methods=['GET'])
+def get_simulator_data():
+    """
+    Get historical data with signals for live market simulation
+    
+    Query Parameters:
+        symbol: Stock symbol (e.g., AAPL)
+        strategy: Strategy name for signal detection (e.g., macd, rsi)
+    """
+    try:
+        symbol = request.args.get('symbol', 'AAPL')
+        strategy_name = request.args.get('strategy', 'macd')
+        
+        print(f"\n{'='*60}")
+        print(f"Simulator request: {symbol} with {strategy_name}")
+        print(f"{'='*60}")
+        
+        df = None
+        data_source = "mock"
+        
+        # ALWAYS generate mock data for now (guaranteed to work)
+        # You can enable Yahoo Finance later by uncommenting the code below
+        from datetime import datetime, timedelta
+        
+        print(f"Generating mock data for {symbol}...")
+        
+        num_days = 90
+        base_price = 150.0
+        current_date = datetime.now()
+        
+        # Create dates and prices
+        prices = [base_price]
+        
+        for i in range(1, num_days):
+            # Random walk simulation
+            change = np.random.randn() * 2.0
+            new_price = prices[-1] * (1 + change/100)
+            prices.append(max(new_price, base_price * 0.7))
+        
+        dates = [(current_date - timedelta(days=num_days-i)).strftime('%Y-%m-%d') for i in range(num_days)]
+        
+        # Create DataFrame
+        df = pd.DataFrame({
+            'date': dates,
+            'open': [p * (1 + np.random.uniform(-0.01, 0.01)) for p in prices],
+            'high': [p * (1 + abs(np.random.uniform(0, 0.02))) for p in prices],
+            'low': [p * (1 - abs(np.random.uniform(0, 0.02))) for p in prices],
+            'close': prices,
+            'volume': [np.random.randint(1000000, 10000000) for _ in range(num_days)]
+        })
+        
+        print(f"✓ Generated {len(df)} days of MOCK data")
+        print(f"  Price range: ${min(prices):.2f} - ${max(prices):.2f}")
+        print(f"  Data source: {data_source.upper()}")
+        
+        # OPTIONAL: Try Yahoo Finance (uncomment to enable)
+        # try:
+        #     print(f"Attempting to fetch real data for {symbol}...")
+        #     real_df = fetch_stock_data(symbol, period='3mo', interval='1d')
+        #     if real_df is not None and len(real_df) > 30:
+        #         df = real_df
+        #         data_source = "yahoo_finance"
+        #         if 'date' not in df.columns:
+        #             df.reset_index(inplace=True)
+        #             df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+        #         print(f"✓ Using REAL Yahoo Finance data instead")
+        # except Exception as e:
+        #     print(f"✗ Yahoo Finance failed, using mock data: {str(e)}")
+        
+        # Apply strategy to detect signals
+        from strategies.macd_strategy import macd_strategy
+        from strategies.rsi_strategy import rsi_strategy
+        from strategies.ema_crossover import ema_crossover_strategy
+        
+        strategy_functions = {
+            'macd': macd_strategy,
+            'rsi': rsi_strategy,
+            'ema_crossover': ema_crossover_strategy
+        }
+        
+        strategy_func = strategy_functions.get(strategy_name, macd_strategy)
+        
+        print(f"Running {strategy_name} strategy...")
+        result = strategy_func(df.copy())
+        
+        # Build response with signals
+        data_with_signals = []
+        buy_count = 0
+        sell_count = 0
+        
+        for idx, row in enumerate(result['data']):
+            # Ensure we have the required fields
+            data_point = {
+                'date': str(row.get('date', '')),
+                'open': float(row.get('open', 0)),
+                'high': float(row.get('high', 0)),
+                'low': float(row.get('low', 0)),
+                'close': float(row.get('close', 0)),
+                'volume': int(row.get('volume', 0)),
+                'signal': 0
+            }
+            
+            # Check for buy/sell signals
+            buy_signal = any(str(s.get('date', '')) == data_point['date'] for s in result.get('buy_signals', []))
+            sell_signal = any(str(s.get('date', '')) == data_point['date'] for s in result.get('sell_signals', []))
+            
+            if buy_signal:
+                data_point['signal'] = 1
+                buy_count += 1
+            elif sell_signal:
+                data_point['signal'] = -1
+                sell_count += 1
+            
+            data_with_signals.append(data_point)
+        
+        print(f"✓ Strategy processed")
+        print(f"  Buy signals: {buy_count}")
+        print(f"  Sell signals: {sell_count}")
+        print(f"  Total data points: {len(data_with_signals)}")
+        
+        response_data = {
+            'data': data_with_signals,
+            'symbol': symbol,
+            'strategy': strategy_name,
+            'total_points': len(data_with_signals),
+            'buy_signals': buy_count,
+            'sell_signals': sell_count,
+            'data_source': data_source,
+            'success': True
+        }
+        
+        print(f"✓ Returning response with {len(data_with_signals)} points")
+        print(f"{'='*60}\n")
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"\n{'!'*60}")
+        print(f"ERROR in simulator endpoint:")
+        print(error_trace)
+        print(f"{'!'*60}\n")
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

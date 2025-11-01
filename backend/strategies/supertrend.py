@@ -58,6 +58,12 @@ def supertrend_strategy(df, period=10, multiplier=3):
     """
     df = df.copy()
     
+    # Ensure date is a column, not index
+    if 'date' not in df.columns and df.index.name == 'date':
+        df.reset_index(inplace=True)
+    elif 'date' not in df.columns:
+        df['date'] = df.index
+    
     # Calculate SuperTrend
     df['supertrend'], df['direction'] = calculate_supertrend(df, period, multiplier)
     

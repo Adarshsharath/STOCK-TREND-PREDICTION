@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2, AlertCircle } from 'lucide-react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2, AlertCircle, DollarSign, TrendingDown } from 'lucide-react'
 import axios from 'axios'
 import StrategyChart from '../components/StrategyChart'
 import MarketValuation from '../components/MarketValuation'
@@ -36,8 +36,10 @@ const timeframeLabels = {
 const StrategyDetail = () => {
   const { strategyId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   
   const strategy = strategiesData.find(s => s.id === strategyId)
+  const fromFinance = location.state?.fromFinance || sessionStorage.getItem('returnToFinance') === 'true'
   
   const [selectedSubStrategy, setSelectedSubStrategy] = useState('')
   const [selectedTimeframe, setSelectedTimeframe] = useState('1d')
@@ -163,11 +165,18 @@ const StrategyDetail = () => {
     <div className="space-y-6">
       {/* Back Button */}
       <button
-        onClick={() => navigate('/strategies')}
+        onClick={() => {
+          if (fromFinance) {
+            sessionStorage.removeItem('returnToFinance')
+            navigate('/finance')
+          } else {
+            navigate('/strategies')
+          }
+        }}
         className="flex items-center space-x-2 text-text-light hover:text-primary transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Back to Strategies</span>
+        <span>{fromFinance ? 'Back to Smart Start' : 'Back to Strategies'}</span>
       </button>
 
       {/* Strategy Header */}
@@ -449,43 +458,129 @@ const StrategyDetail = () => {
             </div>
           )}
 
-          {/* Signals */}
-          {results.signals && results.signals.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-card">
-              <h3 className="text-lg font-bold text-text mb-4">Trading Signals</h3>
-              <div className="space-y-3">
-                {results.signals.slice(0, 10).map((signal, index) => (
-                  <div key={index} className={`p-4 rounded-lg ${
-                    signal.signal === 'BUY' ? 'bg-green-50 border-l-4 border-green-500' :
-                    signal.signal === 'SELL' ? 'bg-red-50 border-l-4 border-red-500' :
-                    'bg-gray-50 border-l-4 border-gray-400'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{signal.date}</p>
-                        <p className="text-sm text-text-muted">Price: ${signal.price?.toFixed(2)}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full font-semibold ${
-                        signal.signal === 'BUY' ? 'bg-green-600 text-white' :
-                        signal.signal === 'SELL' ? 'bg-red-600 text-white' :
-                        'bg-gray-600 text-white'
-                      }`}>
-                        {signal.signal}
-                      </span>
+          {/* Profit/Loss Calculator */}
+          {results.buy_signals && results.sell_signals && results.buy_signals.length > 0 && results.sell_signals.length > 0 && (() => {
+            // Match buy and sell signals chronologically
+            const buys = [...results.buy_signals].sort((a, b) => new Date(a.date) - new Date(b.date))
+            const sells = [...results.sell_signals].sort((a, b) => new Date(a.date) - new Date(b.date))
+            
+            let totalProfit = 0
+            let totalTrades = 0
+            let profitableTrades = 0
+            let losingTrades = 0
+            const trades = []
+            
+            let buyIndex = 0
+            let sellIndex = 0
+            
+            while (buyIndex < buys.length && sellIndex < sells.length) {
+              const buySignal = buys[buyIndex]
+              const sellSignal = sells[sellIndex]
+              
+              // Get price values (could be 'close' or 'price' depending on strategy)
+              const buyPrice = buySignal.close || buySignal.price
+              const sellPrice = sellSignal.close || sellSignal.price
+              
+              // Skip if prices are invalid
+              if (!buyPrice || !sellPrice || isNaN(buyPrice) || isNaN(sellPrice)) {
+                buyIndex++
+                continue
+              }
+              
+              // Find next sell after this buy
+              if (new Date(sellSignal.date) > new Date(buySignal.date)) {
+                const profit = sellPrice - buyPrice
+                const profitPercent = (profit / buyPrice) * 100
+                
+                totalProfit += profit
+                totalTrades++
+                
+                if (profit > 0) profitableTrades++
+                else losingTrades++
+                
+                trades.push({
+                  buyDate: buySignal.date,
+                  buyPrice: buyPrice,
+                  sellDate: sellSignal.date,
+                  sellPrice: sellPrice,
+                  profit,
+                  profitPercent
+                })
+                
+                buyIndex++
+                sellIndex++
+              } else {
+                sellIndex++
+              }
+            }
+            
+            const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0
+            const firstBuyPrice = buys.length > 0 ? (buys[0].close || buys[0].price) : 0
+            const totalProfitPercent = firstBuyPrice > 0 ? (totalProfit / firstBuyPrice) * 100 : 0
+            const isProfit = totalProfit >= 0
+            
+            return (
+              <div className="bg-white rounded-xl p-6 shadow-card">
+                <h3 className="text-lg font-bold text-text mb-4 flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2 text-primary" />
+                  Strategy Performance - Overall Profit/Loss
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className={`rounded-lg p-4 ${isProfit ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'}`}>
+                    <p className="text-xs text-text-muted uppercase mb-1">Total Profit/Loss</p>
+                    <div className="flex items-center space-x-2">
+                      {isProfit ? (
+                        <TrendingUp className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <TrendingDown className="w-6 h-6 text-red-600" />
+                      )}
+                      <p className={`text-2xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                        {isProfit ? '+' : ''}₹{isNaN(totalProfit) ? '0.00' : totalProfit.toFixed(2)}
+                      </p>
                     </div>
+                    <p className={`text-sm font-semibold mt-1 ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                      {isProfit ? '+' : ''}{isNaN(totalProfitPercent) ? '0.00' : totalProfitPercent.toFixed(2)}%
+                    </p>
                   </div>
-                ))}
+                  
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-xs text-text-muted uppercase mb-1">Total Trades</p>
+                    <p className="text-2xl font-bold text-blue-600">{totalTrades}</p>
+                    <p className="text-xs text-text-muted mt-1">Completed Buy-Sell Pairs</p>
+                  </div>
+                  
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <p className="text-xs text-text-muted uppercase mb-1">Profitable Trades</p>
+                    <p className="text-2xl font-bold text-green-600">{profitableTrades}</p>
+                    <p className="text-xs text-green-600 mt-1 font-semibold">Win Rate: {isNaN(winRate) ? '0.0' : winRate.toFixed(1)}%</p>
+                  </div>
+                  
+                  <div className="bg-red-50 rounded-lg p-4">
+                    <p className="text-xs text-text-muted uppercase mb-1">Losing Trades</p>
+                    <p className="text-2xl font-bold text-red-600">{losingTrades}</p>
+                    <p className="text-xs text-red-600 mt-1 font-semibold">Loss Rate: {isNaN(winRate) ? '100.0' : (100 - winRate).toFixed(1)}%</p>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-text mb-2">💡 How This is Calculated:</p>
+                  <p className="text-xs text-text-light leading-relaxed">
+                    This shows the profit/loss if you bought the stock when a <span className="text-green-600 font-semibold">green (buy) signal</span> appears 
+                    and sold it when the next <span className="text-red-600 font-semibold">red (sell) signal</span> appears. 
+                    The calculation pairs each buy signal with its chronologically next sell signal. 
+                    Total profit/loss is the sum of all completed trades.
+                  </p>
+                  {totalTrades === 0 && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      ⚠️ No completed buy-sell pairs found. Make sure you have matching buy and sell signals in the selected time period.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {/* Confidence Score / Signal Strength */}
-          {results.buy_signals && results.sell_signals && (
-            <SignalStrength 
-              buySignals={results.buy_signals} 
-              sellSignals={results.sell_signals}
-            />
-          )}
         </div>
       )}
     </div>

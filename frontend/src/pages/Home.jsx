@@ -1,9 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, Brain, LineChart, ArrowRight, Activity } from 'lucide-react'
+import { TrendingUp, Brain, LineChart, ArrowRight, Activity, User, ChevronDown } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
+import LiveSimulatorCompact from '../components/LiveSimulatorCompact'
 
 const Home = () => {
+  const { isAuthenticated, user } = useAuth()
+  const [showLoginDropdown, setShowLoginDropdown] = useState(false)
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -15,6 +20,16 @@ const Home = () => {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto text-center"
           >
+            {/* Welcome message for authenticated users */}
+            {isAuthenticated && (
+              <div className="absolute top-4 right-6 z-10">
+                <div className="inline-flex items-center space-x-2 bg-white text-primary px-6 py-2.5 rounded-lg font-semibold shadow-lg">
+                  <User className="w-4 h-4" />
+                  <span>Welcome, {user?.username}!</span>
+                </div>
+              </div>
+            )}
+
             <div className="inline-flex items-center space-x-2 bg-white bg-opacity-20 px-4 py-2 rounded-full mb-6">
               <Activity className="w-4 h-4" />
               <span className="text-sm font-medium">AI-Powered Stock Analysis</span>
@@ -32,24 +47,59 @@ const Home = () => {
             </p>
             
             <div className="flex items-center justify-center space-x-4">
-              <Link
-                to="/strategies"
-                className="inline-flex items-center space-x-2 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-lg"
-              >
-                <Activity className="w-5 h-5" />
-                <span>Get Started</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center space-x-2 bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary transition-all"
-              >
-                <LineChart className="w-5 h-5" />
-                <span>View Dashboard</span>
-              </Link>
+              {!isAuthenticated ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLoginDropdown(!showLoginDropdown)}
+                    className="inline-flex items-center space-x-2 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-lg"
+                  >
+                    <User className="w-5 h-5" />
+                    <span>Sign Up / Login</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showLoginDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showLoginDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-56 bg-white rounded-lg shadow-xl overflow-hidden z-20"
+                    >
+                      <Link
+                        to="/signup"
+                        className="block px-6 py-3 text-text hover:bg-primary hover:text-white transition-colors font-medium"
+                        onClick={() => setShowLoginDropdown(false)}
+                      >
+                        Create New Account
+                      </Link>
+                      <Link
+                        to="/login"
+                        className="block px-6 py-3 text-text hover:bg-primary hover:text-white transition-colors font-medium border-t border-border"
+                        onClick={() => setShowLoginDropdown(false)}
+                      >
+                        Login to Existing Account
+                      </Link>
+                    </motion.div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to="/finance"
+                  className="inline-flex items-center space-x-2 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-lg"
+                >
+                  <LineChart className="w-5 h-5" />
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Live Simulator Section */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-6">
+          <LiveSimulatorCompact />
         </div>
       </section>
 
@@ -76,7 +126,7 @@ const Home = () => {
               </div>
               <h3 className="text-2xl font-bold text-text mb-4">Trading Strategies</h3>
               <p className="text-text-light mb-6">
-                5 professional trading strategies including EMA Crossover, RSI, MACD, Bollinger Bands, and SuperTrend.
+                10 professional trading strategies including EMA Crossover, RSI, MACD, Bollinger Bands, SuperTrend, and more.
               </p>
               <Link to="/strategies" className="text-primary font-semibold inline-flex items-center space-x-2 hover:underline">
                 <span>Explore Strategies</span>
@@ -96,7 +146,7 @@ const Home = () => {
               </div>
               <h3 className="text-2xl font-bold text-text mb-4">ML Predictions</h3>
               <p className="text-text-light mb-6">
-                Advanced machine learning models: LSTM, Prophet, ARIMA, Random Forest, and XGBoost for price prediction.
+                10 advanced machine learning models including LSTM, Prophet, ARIMA, Random Forest, XGBoost, and more for accurate price prediction.
               </p>
               <Link to="/predictions" className="text-primary font-semibold inline-flex items-center space-x-2 hover:underline">
                 <span>View Predictions</span>
@@ -132,11 +182,11 @@ const Home = () => {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">5</div>
+              <div className="text-5xl font-bold text-primary mb-2">10</div>
               <div className="text-text-light">Trading Strategies</div>
             </div>
             <div className="text-center">
-              <div className="text-5xl font-bold text-secondary mb-2">5</div>
+              <div className="text-5xl font-bold text-secondary mb-2">10</div>
               <div className="text-text-light">ML Models</div>
             </div>
             <div className="text-center">
@@ -160,10 +210,10 @@ const Home = () => {
               Join thousands of traders using AI-powered insights to make better investment decisions
             </p>
             <Link
-              to="/strategies"
+              to="/dashboard"
               className="inline-flex items-center space-x-2 bg-white text-primary px-8 py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-lg text-lg"
             >
-              <span>Get Started Now</span>
+              <span>Dashboard</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>

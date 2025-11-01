@@ -3,6 +3,7 @@ import { Send, Loader2, Trash2, MessageCircle, Plus, History, Sparkles, X as Clo
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../context/ChatContext'
 import axios from 'axios'
+import FormattedMessage from './FormattedMessage'
 
 const ChatWindow = () => {
   const { 
@@ -261,7 +262,7 @@ const ChatWindow = () => {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${
+                    className={`max-w-[85%] p-5 rounded-2xl shadow-sm ${
                       msg.role === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
                         : msg.error
@@ -269,8 +270,16 @@ const ChatWindow = () => {
                         : 'bg-white text-gray-800 border border-gray-100'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                    <p className={`text-xs mt-2 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+                    {msg.role === 'user' ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <FormattedMessage content={msg.content} isUser={false} />
+                    )}
+                    <p className={`text-xs mt-3 pt-2 border-t ${
+                      msg.role === 'user' 
+                        ? 'text-blue-100 border-blue-400' 
+                        : 'text-gray-400 border-gray-200'
+                    }`}>
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </p>
                   </div>

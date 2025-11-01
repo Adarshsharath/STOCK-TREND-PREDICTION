@@ -1,6 +1,7 @@
 import React from 'react'
 import Plot from 'react-plotly.js'
 import { Activity, AlertTriangle, TrendingUp } from 'lucide-react'
+import { getCurrencySymbol } from '../utils/currency'
 
 const VolatilityPredictor = ({ volatilityData }) => {
   if (!volatilityData) {
@@ -66,7 +67,7 @@ const VolatilityPredictor = ({ volatilityData }) => {
       showgrid: false
     },
     yaxis: {
-      title: 'Price Range ($)',
+      title: `Price Range (${getCurrencySymbol()})`,
       gridcolor: '#e2e8f0',
       color: '#64748b'
     },
@@ -117,7 +118,7 @@ const VolatilityPredictor = ({ volatilityData }) => {
                 ±{predicted_volatility_percent.toFixed(2)}%
               </span>
               <span className="text-sm text-text-muted">
-                (${predicted_volatility_dollar.toFixed(2)})
+                ({getCurrencySymbol()}{predicted_volatility_dollar.toFixed(2)})
               </span>
             </div>
           </div>
@@ -145,15 +146,15 @@ const VolatilityPredictor = ({ volatilityData }) => {
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="text-center p-3 bg-background rounded-lg">
           <p className="text-xs text-text-muted mb-1">Current ATR</p>
-          <p className="text-lg font-bold text-primary">${current_atr.toFixed(2)}</p>
+          <p className="text-lg font-bold text-primary">{getCurrencySymbol()}{current_atr.toFixed(2)}</p>
         </div>
         <div className="text-center p-3 bg-background rounded-lg">
           <p className="text-xs text-text-muted mb-1">Avg 5D Range</p>
-          <p className="text-lg font-bold text-primary">${avg_range_5d.toFixed(2)}</p>
+          <p className="text-lg font-bold text-primary">{getCurrencySymbol()}{avg_range_5d.toFixed(2)}</p>
         </div>
         <div className="text-center p-3 bg-background rounded-lg">
           <p className="text-xs text-text-muted mb-1">Current Price</p>
-          <p className="text-lg font-bold text-primary">${current_price.toFixed(2)}</p>
+          <p className="text-lg font-bold text-primary">{getCurrencySymbol()}{current_price.toFixed(2)}</p>
         </div>
       </div>
 

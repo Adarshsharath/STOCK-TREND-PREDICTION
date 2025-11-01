@@ -28,8 +28,8 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
     close: data.map(d => d.close),
     type: 'candlestick',
     name: 'Price',
-    increasing: { line: { color: '#22c55e' } },
-    decreasing: { line: { color: '#ef4444' } }
+    increasing: { line: { color: '#10b981', width: 2 }, fillcolor: '#10b981' },
+    decreasing: { line: { color: '#ef4444', width: 2 }, fillcolor: '#ef4444' }
   } : {
     x: dates,
     y: prices,
@@ -48,9 +48,13 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
       mode: 'markers',
       name: 'Buy Signal',
       marker: {
-        color: '#22c55e',
-        size: 10,
-        symbol: 'triangle-up'
+        color: '#10b981',
+        size: 16,
+        symbol: 'triangle-up',
+        line: {
+          color: '#065f46',
+          width: 2
+        }
       }
     },
     {
@@ -61,8 +65,12 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
       name: 'Sell Signal',
       marker: {
         color: '#ef4444',
-        size: 10,
-        symbol: 'triangle-down'
+        size: 16,
+        symbol: 'triangle-down',
+        line: {
+          color: '#991b1b',
+          width: 2
+        }
       }
     }
   ]
@@ -131,7 +139,7 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
         data={traces}
         layout={layout}
         config={config}
-        style={{ width: '100%', height: '650px' }}
+        style={{ width: '100%', height: '700px' }}
         useResizeHandler={true}
       />
     </div>

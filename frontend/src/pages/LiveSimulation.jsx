@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
 import axios from 'axios'
 import { Play, Pause, RotateCcw, Zap, Clock, DollarSign, TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle, BarChart3 } from 'lucide-react'
+import { getCurrencySymbol } from '../utils/currency'
 
 const STRATEGY_OPTIONS = [
   { id: 'ema_crossover', label: 'EMA Crossover' },
@@ -289,12 +290,12 @@ export default function LiveSimulation() {
               <p className={`text-sm mb-3 ${pnl.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                 {pnl.total >= 0 ? (
                   <>
-                    This strategy has generated a <strong>profit of ${pnl.total.toFixed(2)}</strong> on the simulated trades. 
+                    This strategy has generated a <strong>profit of {getCurrencySymbol()}{pnl.total.toFixed(2)}</strong> on the simulated trades. 
                     The strategy is currently working well for <strong>{symbol}</strong>. You may consider following the signals.
                   </>
                 ) : (
                   <>
-                    This strategy has resulted in a <strong>loss of ${Math.abs(pnl.total).toFixed(2)}</strong> on the simulated trades. 
+                    This strategy has resulted in a <strong>loss of {getCurrencySymbol()}{Math.abs(pnl.total).toFixed(2)}</strong> on the simulated trades. 
                     <strong className="block mt-2">⚠️ Not recommended to buy {symbol} using this strategy at this time.</strong> 
                     Consider trying a different strategy or waiting for better market conditions.
                   </>
@@ -308,7 +309,7 @@ export default function LiveSimulation() {
                 </p>
                 {pnl.openTrades > 0 && (
                   <p className={pnl.total >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    You currently have {pnl.openTrades} open position{pnl.openTrades > 1 ? 's' : ''} with ${pnl.open >= 0 ? '+' : ''}{pnl.open.toFixed(2)} unrealized profit/loss.
+                    You currently have {pnl.openTrades} open position{pnl.openTrades > 1 ? 's' : ''} with {getCurrencySymbol()}{pnl.open >= 0 ? '+' : ''}{pnl.open.toFixed(2)} unrealized profit/loss.
                   </p>
                 )}
               </div>
@@ -365,7 +366,7 @@ export default function LiveSimulation() {
               <div className="invisible group-hover:visible absolute right-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
                 <p className="font-semibold mb-1">What are Open Positions?</p>
                 <p className="mb-2">These are stocks you've bought but haven't sold yet.</p>
-                <p className="mb-2"><strong>Long 1 @ $XX:</strong> You bought 1 share at price $XX</p>
+                <p className="mb-2"><strong>Long 1 @ {getCurrencySymbol()}XX:</strong> You bought 1 share at price {getCurrencySymbol()}XX</p>
                 <p><strong>Unrealized:</strong> How much profit/loss you have right now (not sold yet, so not final)</p>
               </div>
             </div>

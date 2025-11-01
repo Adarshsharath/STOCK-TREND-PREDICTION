@@ -64,25 +64,6 @@ const ExplainabilityPanel = ({ reasoning }) => {
         </div>
       </div>
 
-      {/* Confidence Score */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-text-light">Prediction Confidence</span>
-          <span className="text-sm font-bold" style={{ color: confidence_color }}>
-            {confidence_level} ({confidence_score}%)
-          </span>
-        </div>
-        <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="absolute h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${confidence_score}%`,
-              backgroundColor: confidence_color
-            }}
-          />
-        </div>
-      </div>
-
       {/* AI Summary */}
       <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
         <div className="flex items-start space-x-2">

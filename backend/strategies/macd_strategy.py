@@ -30,6 +30,12 @@ def macd_strategy(df, fast=12, slow=26, signal=9):
     """
     df = df.copy()
     
+    # Ensure date is a column, not index
+    if 'date' not in df.columns and df.index.name == 'date':
+        df.reset_index(inplace=True)
+    elif 'date' not in df.columns:
+        df['date'] = df.index
+    
     # Calculate MACD
     df['macd'], df['signal_line'], df['histogram'] = calculate_macd(df['close'], fast, slow, signal)
     

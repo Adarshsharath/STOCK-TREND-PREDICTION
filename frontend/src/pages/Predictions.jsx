@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Brain, Loader2, Search } from 'lucide-react'
+import { Brain, Loader2, Search, ArrowLeft } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import PredictionChart from '../components/PredictionChart'
 import InfoCard from '../components/InfoCard'
@@ -12,22 +13,146 @@ import ClassificationResult from '../components/ClassificationResult'
 
 const MODELS = [
   // Regression Models (Price Prediction)
-  { id: 'lstm', name: 'LSTM (Price)', category: 'regression' },
-  { id: 'prophet', name: 'Prophet (Price)', category: 'regression' },
-  { id: 'arima', name: 'ARIMA (Price)', category: 'regression' },
-  { id: 'randomforest', name: 'Random Forest (Price)', category: 'regression' },
-  { id: 'xgboost', name: 'XGBoost (Price)', category: 'regression' },
+  { 
+    id: 'lstm', 
+    name: 'LSTM', 
+    fullName: 'Long Short-Term Memory',
+    category: 'regression',
+    icon: '🧠',
+    color: 'from-blue-500 to-cyan-500',
+    description: 'Deep learning model that remembers patterns over time. Best for stocks with clear trends and seasonal patterns.',
+    accuracy: '75-85%',
+    pros: 'Excellent for time series, captures complex patterns',
+    cons: 'Requires more training time',
+    bestFor: 'Trending stocks, long-term predictions'
+  },
+  { 
+    id: 'prophet', 
+    name: 'Prophet', 
+    fullName: 'Facebook Prophet',
+    category: 'regression',
+    icon: '📈',
+    color: 'from-green-500 to-teal-500',
+    description: 'Created by Facebook, designed for business forecasting. Automatically handles holidays and seasonality.',
+    accuracy: '70-80%',
+    pros: 'Fast, works well with missing data',
+    cons: 'Less accurate for volatile stocks',
+    bestFor: 'Stable stocks, seasonal patterns'
+  },
+  { 
+    id: 'arima', 
+    name: 'ARIMA', 
+    fullName: 'AutoRegressive Integrated Moving Average',
+    category: 'regression',
+    icon: '📊',
+    color: 'from-purple-500 to-pink-500',
+    description: 'Classical statistical method that analyzes past values. Fast and reliable for short-term predictions.',
+    accuracy: '65-75%',
+    pros: 'Very fast, simple to understand',
+    cons: 'Struggles with sudden market changes',
+    bestFor: 'Short-term predictions, stable markets'
+  },
+  { 
+    id: 'randomforest', 
+    name: 'Random Forest', 
+    fullName: 'Random Forest Regressor',
+    category: 'regression',
+    icon: '🌳',
+    color: 'from-emerald-500 to-green-500',
+    description: 'Uses multiple decision trees to make predictions. Good at handling complex, non-linear relationships.',
+    accuracy: '70-80%',
+    pros: 'Robust, handles outliers well',
+    cons: 'Can overfit on small datasets',
+    bestFor: 'Medium-term predictions, volatile stocks'
+  },
+  { 
+    id: 'xgboost', 
+    name: 'XGBoost', 
+    fullName: 'Extreme Gradient Boosting',
+    category: 'regression',
+    icon: '⚡',
+    color: 'from-orange-500 to-red-500',
+    description: 'Powerful gradient boosting algorithm. Often wins machine learning competitions for its accuracy.',
+    accuracy: '75-85%',
+    pros: 'High accuracy, feature importance',
+    cons: 'Needs parameter tuning',
+    bestFor: 'All types of stocks, high accuracy needed'
+  },
   
   // Classification Models (Direction Prediction)
-  { id: 'logistic_regression', name: 'Logistic Regression (Direction)', category: 'classification', accuracy: '55-65%' },
-  { id: 'xgboost_classifier', name: 'XGBoost Classifier (Direction)', category: 'classification', accuracy: '60-75%' },
-  { id: 'randomforest_classifier', name: 'Random Forest Classifier (Direction)', category: 'classification', accuracy: '58-70%' },
-  { id: 'lstm_classifier', name: 'LSTM Classifier (Direction)', category: 'classification', accuracy: '60-75%' },
-  { id: 'svm', name: 'SVM Classifier (Direction)', category: 'classification', accuracy: '55-70%' }
+  { 
+    id: 'logistic_regression', 
+    name: 'Logistic Regression', 
+    fullName: 'Logistic Regression Classifier',
+    category: 'classification',
+    icon: '📉',
+    color: 'from-indigo-500 to-blue-500',
+    description: 'Simple and fast classifier that predicts UP or DOWN movement. Good baseline model.',
+    accuracy: '55-65%',
+    pros: 'Very fast, interpretable',
+    cons: 'Lower accuracy, assumes linear relationships',
+    bestFor: 'Quick predictions, understanding trends'
+  },
+  { 
+    id: 'xgboost_classifier', 
+    name: 'XGBoost Classifier', 
+    fullName: 'XGBoost Direction Classifier',
+    category: 'classification',
+    icon: '🎯',
+    color: 'from-red-500 to-pink-500',
+    description: 'Predicts whether stock will go UP or DOWN using gradient boosting. Very accurate for direction prediction.',
+    accuracy: '60-75%',
+    pros: 'High accuracy, handles complex patterns',
+    cons: 'Slower than simple models',
+    bestFor: 'Day trading, swing trading decisions'
+  },
+  { 
+    id: 'randomforest_classifier', 
+    name: 'Random Forest Classifier', 
+    fullName: 'Random Forest Direction Classifier',
+    category: 'classification',
+    icon: '🌲',
+    color: 'from-green-500 to-emerald-500',
+    description: 'Uses ensemble of decision trees to vote on stock direction. Robust and reliable.',
+    accuracy: '58-70%',
+    pros: 'Stable predictions, good with noise',
+    cons: 'Can be conservative',
+    bestFor: 'Conservative trading, risk management'
+  },
+  { 
+    id: 'lstm_classifier', 
+    name: 'LSTM Classifier', 
+    fullName: 'LSTM Direction Classifier',
+    category: 'classification',
+    icon: '🔮',
+    color: 'from-purple-500 to-indigo-500',
+    description: 'Deep learning model that learns temporal patterns to predict stock direction. Best for trending markets.',
+    accuracy: '60-75%',
+    pros: 'Captures long-term trends',
+    cons: 'Requires more data and training time',
+    bestFor: 'Trending stocks, pattern-based trading'
+  },
+  { 
+    id: 'svm', 
+    name: 'SVM', 
+    fullName: 'Support Vector Machine',
+    category: 'classification',
+    icon: '🎲',
+    color: 'from-yellow-500 to-orange-500',
+    description: 'Finds optimal boundary between UP and DOWN movements. Works well with limited data.',
+    accuracy: '55-70%',
+    pros: 'Good with small datasets',
+    cons: 'Slower on large datasets',
+    bestFor: 'Small-cap stocks, limited historical data'
+  }
 ]
 
 const Predictions = () => {
-  const [selectedModel, setSelectedModel] = useState('lstm')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const fromFinance = location.state?.fromFinance || sessionStorage.getItem('returnToFinance') === 'true'
+  
+  const [selectedModel, setSelectedModel] = useState(null)
   const [symbol, setSymbol] = useState('RELIANCE.NS')
   const [period, setPeriod] = useState('2y')
   const [loading, setLoading] = useState(false)
@@ -35,6 +160,7 @@ const Predictions = () => {
   const [error, setError] = useState(null)
   const [sentimentVolatility, setSentimentVolatility] = useState(null)
   const [svLoading, setSvLoading] = useState(false)
+  const [showAnalyze, setShowAnalyze] = useState(false)
 
   const fetchSentimentVolatility = async (stockSymbol) => {
     setSvLoading(true)
@@ -104,13 +230,43 @@ const Predictions = () => {
     }
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleModelSelect = (modelId) => {
+    setSelectedModel(modelId)
+    setShowAnalyze(true)
+    setData(null)
+    setError(null)
+  }
+
+  const handleAnalyze = () => {
+    if (!symbol.trim()) {
+      setError('Please enter a stock symbol')
+      return
+    }
+    if (!selectedModel) {
+      setError('Please select a model')
+      return
+    }
     fetchPrediction()
   }
 
+  const currentModel = MODELS.find(m => m.id === selectedModel)
+
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      {fromFinance && (
+        <button
+          onClick={() => {
+            sessionStorage.removeItem('returnToFinance')
+            navigate('/finance')
+          }}
+          className="flex items-center space-x-2 text-text-light hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Smart Start</span>
+        </button>
+      )}
+      
       {/* Weather Alerts */}
       <WeatherAlerts />
       
@@ -122,82 +278,163 @@ const Predictions = () => {
         </div>
         <h1 className="text-4xl font-bold mb-2">ML Predictions</h1>
         <p className="text-white text-opacity-90">
-          Predict stock prices and directions using 10 advanced ML models - 5 regression + 5 classification
+          Choose from 10 advanced ML models - 5 for price prediction + 5 for direction prediction
         </p>
       </div>
 
-      {/* Controls */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-text mb-2">ML Model</label>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <optgroup label="📈 Price Prediction (Regression)">
-                {MODELS.filter(m => m.category === 'regression').map(model => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="🎯 Direction Prediction (Classification)">
-                {MODELS.filter(m => m.category === 'classification').map(model => (
-                  <option key={model.id} value={model.id}>
-                    {model.name} {model.accuracy ? `- ${model.accuracy}` : ''}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+      {/* Model Selection Cards */}
+      {!showAnalyze && (
+        <>
+          {/* Regression Models */}
+          <div className="bg-white rounded-xl p-6 shadow-card">
+            <h2 className="text-2xl font-bold text-text mb-2">📈 Price Prediction Models</h2>
+            <p className="text-text-muted mb-6">Predict exact future stock prices</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {MODELS.filter(m => m.category === 'regression').map(model => (
+                <button
+                  key={model.id}
+                  onClick={() => handleModelSelect(model.id)}
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg hover:scale-105 ${
+                    selectedModel === model.id
+                      ? 'border-primary bg-blue-50'
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-4xl">{model.icon}</span>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                      {model.accuracy}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-text mb-1">{model.name}</h3>
+                  <p className="text-xs text-text-muted mb-3">{model.fullName}</p>
+                  <p className="text-sm text-text-light mb-3">{model.description}</p>
+                  <div className="space-y-2 text-xs">
+                    <p><strong className="text-green-600">✓</strong> {model.pros}</p>
+                    <p><strong className="text-red-600">✗</strong> {model.cons}</p>
+                    <p className="text-primary font-semibold">Best for: {model.bestFor}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-text dark:text-dark-text-primary mb-2">Stock Symbol</label>
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="e.g., RELIANCE.NS, TCS.NS"
-              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary placeholder-text-muted dark:placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+          {/* Classification Models */}
+          <div className="bg-white rounded-xl p-6 shadow-card">
+            <h2 className="text-2xl font-bold text-text mb-2">🎯 Direction Prediction Models</h2>
+            <p className="text-text-muted mb-6">Predict if stock will go UP ⬆️ or DOWN ⬇️</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {MODELS.filter(m => m.category === 'classification').map(model => (
+                <button
+                  key={model.id}
+                  onClick={() => handleModelSelect(model.id)}
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg hover:scale-105 ${
+                    selectedModel === model.id
+                      ? 'border-primary bg-blue-50'
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-4xl">{model.icon}</span>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                      {model.accuracy}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-text mb-1">{model.name}</h3>
+                  <p className="text-xs text-text-muted mb-3">{model.fullName}</p>
+                  <p className="text-sm text-text-light mb-3">{model.description}</p>
+                  <div className="space-y-2 text-xs">
+                    <p><strong className="text-green-600">✓</strong> {model.pros}</p>
+                    <p><strong className="text-red-600">✗</strong> {model.cons}</p>
+                    <p className="text-primary font-semibold">Best for: {model.bestFor}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
+        </>
+      )}
 
-          <div>
-            <label className="block text-sm font-medium text-text dark:text-dark-text-primary mb-2">Period</label>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="1y">1 Year</option>
-              <option value="2y">2 Years</option>
-              <option value="5y">5 Years</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
+      {/* Analyze Section - Shows after model selection */}
+      {showAnalyze && currentModel && (
+        <>
+          {/* Back button and selected model info */}
+          <div className="bg-white rounded-xl p-6 shadow-card">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              onClick={() => {setShowAnalyze(false); setSelectedModel(null); setData(null); setError(null);}}
+              className="text-primary hover:text-primary-dark mb-4 font-medium"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Training...</span>
-                </>
-              ) : (
-                <>
-                  <Brain className="w-5 h-5" />
-                  <span>Predict</span>
-                </>
-              )}
+              ← Back to Model Selection
             </button>
+            <div className={`bg-gradient-to-r ${currentModel.color} text-white rounded-xl p-6 mb-4`}>
+              <div className="flex items-start space-x-4">
+                <span className="text-5xl">{currentModel.icon}</span>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold mb-2">{currentModel.name}</h2>
+                  <p className="text-white text-opacity-90 mb-2">{currentModel.description}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p>✓ {currentModel.pros}</p>
+                    <p>✗ {currentModel.cons}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="bg-white bg-opacity-20 rounded-lg px-4 py-2">
+                    <p className="text-xs opacity-90">Accuracy</p>
+                    <p className="text-2xl font-bold">{currentModel.accuracy}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Analyze Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text mb-2">Stock Symbol</label>
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  placeholder="e.g., RELIANCE.NS, TCS.NS"
+                  className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text mb-2">Data Period</label>
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="1y">1 Year</option>
+                  <option value="2y">2 Years</option>
+                  <option value="5y">5 Years</option>
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={loading || !symbol}
+                  className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Training...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-5 h-5" />
+                      <span>Analyze</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
+        </>
+      )}
 
       {/* Sentiment, Volatility, and Model Performance Analysis - Shows immediately */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

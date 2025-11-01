@@ -29,6 +29,12 @@ def rsi_strategy(df, period=14, oversold=35, overbought=65):
     """
     df = df.copy()
     
+    # Ensure date is a column, not index
+    if 'date' not in df.columns and df.index.name == 'date':
+        df.reset_index(inplace=True)
+    elif 'date' not in df.columns:
+        df['date'] = df.index
+    
     # Calculate RSI
     df['rsi'] = calculate_rsi(df['close'], period)
     df['rsi_prev'] = df['rsi'].shift(1)
