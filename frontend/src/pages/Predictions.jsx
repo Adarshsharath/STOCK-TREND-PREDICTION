@@ -8,18 +8,27 @@ import ModelComparison from '../components/ModelComparison'
 import MarketSentimentPanel from '../components/MarketSentimentPanel'
 import VolatilityPredictor from '../components/VolatilityPredictor'
 import ExplainabilityPanel from '../components/ExplainabilityPanel'
+import ClassificationResult from '../components/ClassificationResult'
 
 const MODELS = [
-  { id: 'lstm', name: 'LSTM' },
-  { id: 'prophet', name: 'Prophet' },
-  { id: 'arima', name: 'ARIMA' },
-  { id: 'randomforest', name: 'Random Forest' },
-  { id: 'xgboost', name: 'XGBoost' }
+  // Regression Models (Price Prediction)
+  { id: 'lstm', name: 'LSTM (Price)', category: 'regression' },
+  { id: 'prophet', name: 'Prophet (Price)', category: 'regression' },
+  { id: 'arima', name: 'ARIMA (Price)', category: 'regression' },
+  { id: 'randomforest', name: 'Random Forest (Price)', category: 'regression' },
+  { id: 'xgboost', name: 'XGBoost (Price)', category: 'regression' },
+  
+  // Classification Models (Direction Prediction)
+  { id: 'logistic_regression', name: 'Logistic Regression (Direction)', category: 'classification', accuracy: '55-65%' },
+  { id: 'xgboost_classifier', name: 'XGBoost Classifier (Direction)', category: 'classification', accuracy: '60-75%' },
+  { id: 'randomforest_classifier', name: 'Random Forest Classifier (Direction)', category: 'classification', accuracy: '58-70%' },
+  { id: 'lstm_classifier', name: 'LSTM Classifier (Direction)', category: 'classification', accuracy: '60-75%' },
+  { id: 'svm', name: 'SVM Classifier (Direction)', category: 'classification', accuracy: '55-70%' }
 ]
 
 const Predictions = () => {
   const [selectedModel, setSelectedModel] = useState('lstm')
-  const [symbol, setSymbol] = useState('AAPL')
+  const [symbol, setSymbol] = useState('RELIANCE.NS')
   const [period, setPeriod] = useState('2y')
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
@@ -113,45 +122,54 @@ const Predictions = () => {
         </div>
         <h1 className="text-4xl font-bold mb-2">ML Predictions</h1>
         <p className="text-white text-opacity-90">
-          Predict stock prices using advanced machine learning and deep learning models
+          Predict stock prices and directions using 10 advanced ML models - 5 regression + 5 classification
         </p>
       </div>
 
       {/* Controls */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 shadow-card">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-text mb-2">ML Model</label>
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              {MODELS.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
+              <optgroup label="📈 Price Prediction (Regression)">
+                {MODELS.filter(m => m.category === 'regression').map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="🎯 Direction Prediction (Classification)">
+                {MODELS.filter(m => m.category === 'classification').map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} {model.accuracy ? `- ${model.accuracy}` : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text mb-2">Stock Symbol</label>
+            <label className="block text-sm font-medium text-text dark:text-dark-text-primary mb-2">Stock Symbol</label>
             <input
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="e.g., AAPL, TSLA"
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              placeholder="e.g., RELIANCE.NS, TCS.NS"
+              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary placeholder-text-muted dark:placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text mb-2">Period</label>
+            <label className="block text-sm font-medium text-text dark:text-dark-text-primary mb-2">Period</label>
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full bg-white dark:bg-dark-bg-tertiary border border-border dark:border-dark-border rounded-lg px-4 py-2.5 text-text dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="1y">1 Year</option>
               <option value="2y">2 Years</option>
@@ -211,26 +229,32 @@ const Predictions = () => {
       {/* Results */}
       {data && (
         <>
-          {/* Main Prediction Results */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <PredictionChart
-                predictions={data.predictions}
-                actual={data.actual}
-                dates={data.dates}
-                modelName={data.metadata.name}
-                metrics={data.metrics}
-              />
+          {/* Check if it's a classification model */}
+          {data.metadata.type === 'classification' ? (
+            /* Classification Result - Simple UP/DOWN Display */
+            <ClassificationResult data={data} symbol={symbol} />
+          ) : (
+            /* Regression Result - Chart Display */
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <PredictionChart
+                  predictions={data.predictions}
+                  actual={data.actual}
+                  dates={data.dates}
+                  modelName={data.metadata.name}
+                  metrics={data.metrics}
+                />
+              </div>
+              <div className="space-y-6">
+                <ExplainabilityPanel reasoning={data.reasoning} />
+                <InfoCard
+                  title={data.metadata.name}
+                  description={data.metadata.description}
+                  parameters={data.metadata.parameters}
+                />
+              </div>
             </div>
-            <div className="space-y-6">
-              <ExplainabilityPanel reasoning={data.reasoning} />
-              <InfoCard
-                title={data.metadata.name}
-                description={data.metadata.description}
-                parameters={data.metadata.parameters}
-              />
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>
