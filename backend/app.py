@@ -39,7 +39,15 @@ from models.randomforest_model import randomforest_predict
 from models.xgboost_model import xgboost_predict
 
 # Import chatbot
-from chatbot.perplexity_bot import chat_with_perplexity
+from chatbot.perplexity_bot_new import chat_with_perplexity
+from chatbot.chat_history import (
+    create_new_conversation,
+    save_message,
+    get_conversation,
+    list_conversations,
+    delete_conversation,
+    update_conversation_title
+)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -186,6 +194,7 @@ def chatbot():
     
     Request Body:
         message: User's message
+        conversation_id: Conversation ID (optional, creates new if not provided)
         conversation_history: Previous conversation (optional)
     """
     try:
@@ -195,13 +204,83 @@ def chatbot():
             return jsonify({'error': 'Message is required'}), 400
         
         user_message = data['message']
+        conversation_id = data.get('conversation_id')
         conversation_history = data.get('conversation_history', None)
+        
+        # Create new conversation if ID not provided
+        if not conversation_id:
+            conversation_id = create_new_conversation()
+        
+        # Save user message
+        save_message(conversation_id, 'user', user_message)
         
         # Get response from Perplexity
         result = chat_with_perplexity(user_message, conversation_history)
         
+        # Save assistant response if successful
+        if not result.get('error'):
+            save_message(conversation_id, 'assistant', result['response'])
+        
+        # Add conversation_id to result
+        result['conversation_id'] = conversation_id
+        
         return jsonify(result)
     
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/conversations', methods=['GET'])
+def get_conversations():
+    """Get all conversations"""
+    try:
+        conversations = list_conversations()
+        return jsonify({'conversations': conversations})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/conversations/<conversation_id>', methods=['GET'])
+def get_conversation_by_id(conversation_id):
+    """Get a specific conversation"""
+    try:
+        conversation = get_conversation(conversation_id)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        return jsonify(conversation)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
+def delete_conversation_by_id(conversation_id):
+    """Delete a conversation"""
+    try:
+        success = delete_conversation(conversation_id)
+        if success:
+            return jsonify({'message': 'Conversation deleted successfully'})
+        return jsonify({'error': 'Conversation not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/conversations/<conversation_id>/title', methods=['PUT'])
+def update_conversation_title_route(conversation_id):
+    """Update conversation title"""
+    try:
+        data = request.get_json()
+        if not data or 'title' not in data:
+            return jsonify({'error': 'Title is required'}), 400
+        
+        success = update_conversation_title(conversation_id, data['title'])
+        if success:
+            return jsonify({'message': 'Title updated successfully'})
+        return jsonify({'error': 'Conversation not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/conversations/new', methods=['POST'])
+def create_conversation():
+    """Create a new conversation"""
+    try:
+        conversation_id = create_new_conversation()
+        return jsonify({'conversation_id': conversation_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
