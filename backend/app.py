@@ -38,6 +38,13 @@ from models.arima_model import arima_predict
 from models.randomforest_model import randomforest_predict
 from models.xgboost_model import xgboost_predict
 
+# Import classifier models
+from models.logistic_regression_model import logistic_regression_predict
+from models.xgboost_classifier_model import xgboost_classifier_predict
+from models.randomforest_classifier_model import randomforest_classifier_predict
+from models.lstm_classifier_model import lstm_classifier_predict
+from models.svm_classifier_model import svm_classifier_predict
+
 # Import chatbot
 from chatbot.perplexity_bot_new import chat_with_perplexity
 from chatbot.chat_history import (
@@ -91,11 +98,19 @@ STRATEGIES = {
 
 # Model mapping
 MODELS = {
+    # Regression models (price prediction)
     'lstm': lstm_predict,
     'prophet': prophet_predict,
     'arima': arima_predict,
     'randomforest': randomforest_predict,
-    'xgboost': xgboost_predict
+    'xgboost': xgboost_predict,
+    
+    # Classification models (direction prediction)
+    'logistic_regression': logistic_regression_predict,
+    'xgboost_classifier': xgboost_classifier_predict,
+    'randomforest_classifier': randomforest_classifier_predict,
+    'lstm_classifier': lstm_classifier_predict,
+    'svm': svm_classifier_predict
 }
 
 @app.route('/api/health', methods=['GET'])
@@ -145,7 +160,7 @@ def get_prediction():
     Get stock price predictions
     
     Query Parameters:
-        model: Model name (lstm, prophet, arima, randomforest, xgboost)
+        model: Model name (lstm, prophet, arima, randomforest, xgboost, logistic_regression, xgboost_classifier, randomforest_classifier, lstm_classifier, svm)
         symbol: Stock symbol (e.g., AAPL, INFY.NS)
         period: Data period (default: 2y)
     """

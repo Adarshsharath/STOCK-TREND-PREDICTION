@@ -17,13 +17,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark mode body styles */
+.dark body {
+  background-color: #0C0F11;
+  color: #FFFFFF;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* Custom scrollbar */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #FFFFFF;
+}
+
+/* Custom scrollbar - Light mode */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -42,9 +52,23 @@ h1, h2, h3, h4, h5, h6 {
   background: #94a3b8;
 }
 
+/* Custom scrollbar - Dark mode */
+.dark ::-webkit-scrollbar-track {
+  background: #161A1D;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3A3F47;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #8B5CF6;
+}
+
 /* Smooth animations */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 /* Card styles */
@@ -52,11 +76,80 @@ h1, h2, h3, h4, h5, h6 {
   @apply bg-white rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow duration-200;
 }
 
+.dark .stat-card {
+  @apply bg-dark-bg-tertiary shadow-dark-card hover:shadow-neon;
+}
+
 /* Button styles */
 .btn-primary {
   @apply bg-primary hover:bg-primary-dark text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200;
 }
 
+.dark .btn-primary {
+  @apply bg-primary hover:bg-primary-dark shadow-neon;
+}
+
 .btn-secondary {
   @apply bg-white hover:bg-gray-50 text-text border border-border font-medium px-6 py-2.5 rounded-lg transition-colors duration-200;
+}
+
+.dark .btn-secondary {
+  @apply bg-dark-bg-tertiary hover:bg-dark-bg-elevated text-dark-text-primary border-dark-border;
+}
+
+/* Neon glow effects for dark mode */
+.dark .neon-accent {
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+}
+
+.dark .neon-border {
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+/* Success/Danger colors with neon in dark mode */
+.dark .text-success {
+  color: #00FFA3;
+  text-shadow: 0 0 5px rgba(0, 255, 163, 0.5);
+}
+
+.dark .text-danger {
+  color: #FF5252;
+  text-shadow: 0 0 5px rgba(255, 82, 82, 0.5);
+}
+
+/* Card backgrounds in dark mode */
+.dark .bg-white {
+  background-color: #161A1D;
+}
+
+.dark .bg-gray-50 {
+  background-color: #1E2329;
+}
+
+.dark .bg-gray-100 {
+  background-color: #252A30;
+}
+
+/* Text colors in dark mode */
+.dark .text-text {
+  color: #FFFFFF;
+}
+
+.dark .text-text-light {
+  color: #B0B3B8;
+}
+
+.dark .text-text-muted {
+  color: #6B7280;
+}
+
+/* Border colors in dark mode */
+.dark .border-border {
+  border-color: #2D3238;
+}
+
+/* Gradient backgrounds in dark mode */
+.dark .bg-gradient-to-r {
+  background: linear-gradient(to right, #8B5CF6, #7C3AED);
 }
