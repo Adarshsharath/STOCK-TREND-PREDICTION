@@ -3,83 +3,84 @@ import numpy as np
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import talib
+from ta.trend import SMAIndicator, EMAIndicator, MACD, ADXIndicator
+from ta.momentum import RSIIndicator, StochasticOscillator, WilliamsRIndicator, ROCIndicator
+from ta.volatility import BollingerBands, AverageTrueRange
+from ta.volume import OnBalanceVolumeIndicator
 
 def create_advanced_features(df):
     """Create comprehensive features for XGBoost"""
     data = df.copy()
     
-    # Ensure float64 type for talib (critical!)
-    close = data['close'].astype(np.float64).values
-    high = data['high'].astype(np.float64).values
-    low = data['low'].astype(np.float64).values
-    volume = data['volume'].astype(np.float64).values
-    open_price = data['open'].astype(np.float64).values
-    
     # Price-based features
-    data['HL_pct'] = (high - low) / close * 100
-    data['OC_pct'] = (close - open_price) / open_price * 100
+    data['HL_pct'] = (data['high'] - data['low']) / data['close'] * 100
+    data['OC_pct'] = (data['close'] - data['open']) / data['open'] * 100
     
     # Trend Indicators
-    data['SMA_5'] = talib.SMA(close, timeperiod=5)
-    data['SMA_10'] = talib.SMA(close, timeperiod=10)
-    data['SMA_20'] = talib.SMA(close, timeperiod=20)
-    data['SMA_50'] = talib.SMA(close, timeperiod=50)
-    data['EMA_12'] = talib.EMA(close, timeperiod=12)
-    data['EMA_26'] = talib.EMA(close, timeperiod=26)
+    data['SMA_5'] = SMAIndicator(close=data['close'], window=5).sma_indicator()
+    data['SMA_10'] = SMAIndicator(close=data['close'], window=10).sma_indicator()
+    data['SMA_20'] = SMAIndicator(close=data['close'], window=20).sma_indicator()
+    data['SMA_50'] = SMAIndicator(close=data['close'], window=50).sma_indicator()
+    data['EMA_12'] = EMAIndicator(close=data['close'], window=12).ema_indicator()
+    data['EMA_26'] = EMAIndicator(close=data['close'], window=26).ema_indicator()
     
     # Price relative to SMAs
-    data['price_to_SMA5'] = (close / data['SMA_5'].values - 1) * 100
-    data['price_to_SMA20'] = (close / data['SMA_20'].values - 1) * 100
+    data['price_to_SMA5'] = (data['close'] / data['SMA_5'] - 1) * 100
+    data['price_to_SMA20'] = (data['close'] / data['SMA_20'] - 1) * 100
     
     # MACD
-    macd, macdsignal, macdhist = talib.MACD(close, fastperiod=12, slowperiod=26, signalperiod=9)
-    data['MACD'] = macd
-    data['MACD_signal'] = macdsignal
-    data['MACD_hist'] = macdhist
+    macd_indicator = MACD(close=data['close'], window_fast=12, window_slow=26, window_sign=9)
+    data['MACD'] = macd_indicator.macd()
+    data['MACD_signal'] = macd_indicator.macd_signal()
+    data['MACD_hist'] = macd_indicator.macd_diff()
     
     # RSI
-    data['RSI_7'] = talib.RSI(close, timeperiod=7)
-    data['RSI_14'] = talib.RSI(close, timeperiod=14)
-    data['RSI_21'] = talib.RSI(close, timeperiod=21)
+    data['RSI_7'] = RSIIndicator(close=data['close'], window=7).rsi()
+    data['RSI_14'] = RSIIndicator(close=data['close'], window=14).rsi()
+    data['RSI_21'] = RSIIndicator(close=data['close'], window=21).rsi()
     
     # Bollinger Bands
-    upper, middle, lower = talib.BBANDS(close, timeperiod=20)
-    data['BB_upper'] = upper
-    data['BB_middle'] = middle
-    data['BB_lower'] = lower
-    data['BB_width'] = (upper - lower) / middle
-    data['BB_position'] = (close - lower) / (upper - lower)  # 0 to 1
+    bb = BollingerBands(close=data['close'], window=20, window_dev=2)
+    data['BB_upper'] = bb.bollinger_hband()
+    data['BB_middle'] = bb.bollinger_mavg()
+    data['BB_lower'] = bb.bollinger_lband()
+    data['BB_width'] = bb.bollinger_wband()
+    data['BB_position'] = (data['close'] - data['BB_lower']) / (data['BB_upper'] - data['BB_lower'])
     
     # Stochastic
-    slowk, slowd = talib.STOCH(high, low, close)
-    data['STOCH_K'] = slowk
-    data['STOCH_D'] = slowd
+    stoch = StochasticOscillator(high=data['high'], low=data['low'], close=data['close'], window=14, smooth_window=3)
+    data['STOCH_K'] = stoch.stoch()
+    data['STOCH_D'] = stoch.stoch_signal()
     
     # ADX and DMI
-    data['ADX'] = talib.ADX(high, low, close, timeperiod=14)
-    data['PLUS_DI'] = talib.PLUS_DI(high, low, close, timeperiod=14)
-    data['MINUS_DI'] = talib.MINUS_DI(high, low, close, timeperiod=14)
+    adx_indicator = ADXIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
+    data['ADX'] = adx_indicator.adx()
+    data['PLUS_DI'] = adx_indicator.adx_pos()
+    data['MINUS_DI'] = adx_indicator.adx_neg()
     
-    # CCI
-    data['CCI'] = talib.CCI(high, low, close, timeperiod=14)
+    # CCI - manual calculation
+    typical_price = (data['high'] + data['low'] + data['close']) / 3
+    data['CCI'] = (typical_price - typical_price.rolling(14).mean()) / (0.015 * typical_price.rolling(14).std())
     
     # Williams %R
-    data['WILLR'] = talib.WILLR(high, low, close, timeperiod=14)
+    willr = WilliamsRIndicator(high=data['high'], low=data['low'], close=data['close'], lbp=14)
+    data['WILLR'] = willr.williams_r()
     
     # ATR (Volatility)
-    data['ATR'] = talib.ATR(high, low, close, timeperiod=14)
-    data['ATR_pct'] = data['ATR'] / close * 100
+    atr = AverageTrueRange(high=data['high'], low=data['low'], close=data['close'], window=14)
+    data['ATR'] = atr.average_true_range()
+    data['ATR_pct'] = data['ATR'] / data['close'] * 100
     
     # Volume indicators
-    data['OBV'] = talib.OBV(close, volume)
-    data['Volume_SMA'] = talib.SMA(volume, timeperiod=20)
-    data['Volume_ratio'] = volume / data['Volume_SMA'].values
+    obv = OnBalanceVolumeIndicator(close=data['close'], volume=data['volume'])
+    data['OBV'] = obv.on_balance_volume()
+    data['Volume_SMA'] = SMAIndicator(close=data['volume'], window=20).sma_indicator()
+    data['Volume_ratio'] = data['volume'] / data['Volume_SMA']
     
     # Momentum
-    data['MOM'] = talib.MOM(close, timeperiod=10)
-    data['ROC'] = talib.ROC(close, timeperiod=10)
-    data['ROC_5'] = talib.ROC(close, timeperiod=5)
+    data['MOM'] = data['close'].diff(periods=10)
+    data['ROC'] = ROCIndicator(close=data['close'], window=10).roc()
+    data['ROC_5'] = ROCIndicator(close=data['close'], window=5).roc()
     
     # Lagged returns
     for i in range(1, 8):
@@ -93,8 +94,8 @@ def create_advanced_features(df):
     data['volume_std_20'] = data['volume'].rolling(window=20).std()
     
     # Price patterns
-    data['higher_high'] = ((high > np.roll(high, 1)) & (np.roll(high, 1) > np.roll(high, 2))).astype(int)
-    data['lower_low'] = ((low < np.roll(low, 1)) & (np.roll(low, 1) < np.roll(low, 2))).astype(int)
+    data['higher_high'] = ((data['high'] > data['high'].shift(1)) & (data['high'].shift(1) > data['high'].shift(2))).astype(int)
+    data['lower_low'] = ((data['low'] < data['low'].shift(1)) & (data['low'].shift(1) < data['low'].shift(2))).astype(int)
     
     # Target: Next day direction (1 = up, 0 = down)
     data['target'] = (data['close'].shift(-1) > data['close']).astype(int)

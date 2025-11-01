@@ -116,7 +116,7 @@ MODELS = {
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'FinBot AI Backend is running'})
+    return jsonify({'status': 'healthy', 'message': 'FinSight AI Backend is running'})
 
 @app.route('/api/strategy', methods=['GET'])
 def get_strategy():
@@ -205,7 +205,7 @@ def get_prediction():
 @app.route('/api/chatbot', methods=['POST'])
 def chatbot():
     """
-    Chat with FinBot AI
+    Chat with FinSight AI
     
     Request Body:
         message: User's message

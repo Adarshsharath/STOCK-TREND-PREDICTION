@@ -1,4 +1,4 @@
-# 🚀 START HERE - FinBot AI Quick Start
+# 🚀 START HERE - FinSight AI Quick Start
 
 ## ⚡ Fastest Way to Run
 
@@ -60,7 +60,7 @@ http://localhost:3000
 ### 3. Browser
 - Beautiful home page with teal gradient
 - Horizontal navigation bar
-- "FinBot AI Trading Platform" logo
+- "FinSight AI Trading Platform" logo
 - No errors in console (press F12)
 
 ---

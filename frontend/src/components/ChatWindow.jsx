@@ -216,7 +216,7 @@ const ChatWindow = () => {
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-lg">FinBot AI</h3>
+                  <h3 className="font-bold text-white text-lg">FinSight AI</h3>
                   <p className="text-xs text-white opacity-90">Your Intelligent Finance Assistant</p>
                 </div>
               </div>
@@ -239,7 +239,7 @@ const ChatWindow = () => {
                 <div className="bg-gradient-to-br from-blue-500 to-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <MessageCircle className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Welcome to FinBot AI!</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Welcome to FinSight AI!</h3>
                 <p className="text-sm text-gray-600 mb-4">Your intelligent assistant for stock analysis, trading strategies, and market insights.</p>
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                   <p className="text-xs text-gray-500 mb-2">Try asking:</p>

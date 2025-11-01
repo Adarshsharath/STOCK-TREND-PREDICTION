@@ -27,7 +27,7 @@ const Home = () => {
             </h1>
             
             <p className="text-xl text-white text-opacity-90 mb-10 max-w-2xl mx-auto">
-              FinBot combines advanced machine learning with deep learning models to analyze 
+              FinSight AI combines advanced machine learning with deep learning models to analyze 
               stock data, trading strategies, and market trends for comprehensive risk assessment.
             </p>
             

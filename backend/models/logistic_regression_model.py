@@ -3,63 +3,64 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import talib
+from ta.trend import SMAIndicator, EMAIndicator, MACD, ADXIndicator
+from ta.momentum import RSIIndicator, StochasticOscillator, ROCIndicator
+from ta.volatility import BollingerBands, AverageTrueRange
+from ta.volume import OnBalanceVolumeIndicator
 
 def create_technical_features(df):
     """Create comprehensive technical indicators for classification"""
     data = df.copy()
     
-    # Ensure float64 type for talib (critical!)
-    close = data['close'].astype(np.float64).values
-    high = data['high'].astype(np.float64).values
-    low = data['low'].astype(np.float64).values
-    volume = data['volume'].astype(np.float64).values
-    
     # Trend Indicators
-    data['SMA_5'] = talib.SMA(close, timeperiod=5)
-    data['SMA_10'] = talib.SMA(close, timeperiod=10)
-    data['SMA_20'] = talib.SMA(close, timeperiod=20)
-    data['EMA_12'] = talib.EMA(close, timeperiod=12)
-    data['EMA_26'] = talib.EMA(close, timeperiod=26)
+    data['SMA_5'] = SMAIndicator(close=data['close'], window=5).sma_indicator()
+    data['SMA_10'] = SMAIndicator(close=data['close'], window=10).sma_indicator()
+    data['SMA_20'] = SMAIndicator(close=data['close'], window=20).sma_indicator()
+    data['EMA_12'] = EMAIndicator(close=data['close'], window=12).ema_indicator()
+    data['EMA_26'] = EMAIndicator(close=data['close'], window=26).ema_indicator()
     
     # MACD
-    macd, macdsignal, macdhist = talib.MACD(close, fastperiod=12, slowperiod=26, signalperiod=9)
-    data['MACD'] = macd
-    data['MACD_signal'] = macdsignal
-    data['MACD_hist'] = macdhist
+    macd_indicator = MACD(close=data['close'], window_fast=12, window_slow=26, window_sign=9)
+    data['MACD'] = macd_indicator.macd()
+    data['MACD_signal'] = macd_indicator.macd_signal()
+    data['MACD_hist'] = macd_indicator.macd_diff()
     
     # RSI
-    data['RSI_14'] = talib.RSI(close, timeperiod=14)
+    data['RSI_14'] = RSIIndicator(close=data['close'], window=14).rsi()
     
     # Bollinger Bands
-    upper, middle, lower = talib.BBANDS(close, timeperiod=20)
-    data['BB_upper'] = upper
-    data['BB_middle'] = middle
-    data['BB_lower'] = lower
-    data['BB_width'] = (upper - lower) / middle
+    bb = BollingerBands(close=data['close'], window=20, window_dev=2)
+    data['BB_upper'] = bb.bollinger_hband()
+    data['BB_middle'] = bb.bollinger_mavg()
+    data['BB_lower'] = bb.bollinger_lband()
+    data['BB_width'] = bb.bollinger_wband()
     
     # Stochastic
-    slowk, slowd = talib.STOCH(high, low, close)
-    data['STOCH_K'] = slowk
-    data['STOCH_D'] = slowd
+    stoch = StochasticOscillator(high=data['high'], low=data['low'], close=data['close'], window=14, smooth_window=3)
+    data['STOCH_K'] = stoch.stoch()
+    data['STOCH_D'] = stoch.stoch_signal()
     
     # ADX
-    data['ADX'] = talib.ADX(high, low, close, timeperiod=14)
+    adx = ADXIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
+    data['ADX'] = adx.adx()
     
     # ATR (Volatility)
-    data['ATR'] = talib.ATR(high, low, close, timeperiod=14)
+    atr = AverageTrueRange(high=data['high'], low=data['low'], close=data['close'], window=14)
+    data['ATR'] = atr.average_true_range()
     
     # Volume indicators
-    data['OBV'] = talib.OBV(close, volume)
-    data['Volume_SMA'] = talib.SMA(volume, timeperiod=20)
+    obv = OnBalanceVolumeIndicator(close=data['close'], volume=data['volume'])
+    data['OBV'] = obv.on_balance_volume()
+    data['Volume_SMA'] = SMAIndicator(close=data['volume'], window=20).sma_indicator()
     
     # Momentum
-    data['MOM'] = talib.MOM(close, timeperiod=10)
-    data['ROC'] = talib.ROC(close, timeperiod=10)
+    data['MOM'] = data['close'].diff(periods=10)
+    roc = ROCIndicator(close=data['close'], window=10)
+    data['ROC'] = roc.roc()
     
     # Price patterns
-    data['price_change'] = close - np.roll(close, 1)
-    data['price_change_pct'] = (close - np.roll(close, 1)) / np.roll(close, 1) * 100
+    data['price_change'] = data['close'].diff()
+    data['price_change_pct'] = data['close'].pct_change() * 100
     
     # Lagged features
     for i in range(1, 6):

@@ -8,11 +8,11 @@ const About = () => {
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">
           <Info className="w-6 h-6" />
-          <span className="text-sm font-medium">About FinBot AI</span>
+          <span className="text-sm font-medium">About FinSight AI</span>
         </div>
         <h1 className="text-4xl font-bold mb-2">About Our Platform</h1>
         <p className="text-white text-opacity-90">
-          Learn more about FinBot AI and our mission to democratize trading intelligence
+          Learn more about FinSight AI and our mission to democratize trading intelligence
         </p>
       </div>
 
@@ -20,7 +20,7 @@ const About = () => {
       <div className="bg-white rounded-xl p-8 shadow-card">
         <h2 className="text-3xl font-bold text-text mb-4">Our Mission</h2>
         <p className="text-lg text-text-light leading-relaxed">
-          FinBot AI is dedicated to empowering traders and investors with cutting-edge artificial intelligence 
+          FinSight AI is dedicated to empowering traders and investors with cutting-edge artificial intelligence 
           and machine learning tools. We combine advanced technical analysis strategies with state-of-the-art 
           prediction models to provide comprehensive market insights that help you make informed trading decisions.
         </p>

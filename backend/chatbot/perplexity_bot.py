@@ -8,7 +8,7 @@ load_dotenv()
 PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY', '')
 PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions'
 
-SYSTEM_PROMPT = """You are FinBot, an intelligent financial analyst and AI assistant.
+SYSTEM_PROMPT = """You are FinSight AI, an intelligent financial analyst and AI assistant.
 You specialize in explaining investment strategies, stock trends, trading insights, and market analysis.
 You have access to real-time information and can provide current market data, news, and analysis.
 Respond concisely and use plain English. Always provide accurate and helpful information.
@@ -374,7 +374,7 @@ I'm here to help with your financial questions. Feel free to ask about:
 What would you like to know next?"""
     
     if any(word in message_lower for word in ['hello', 'hi', 'hey', 'greetings']):
-        return """👋 Hello! I'm FinBot, your financial assistant!
+        return """👋 Hello! I'm FinSight AI, your financial assistant!
 
 I can help you with:
 - 📊 Real-time stock quotes (e.g., "What's AAPL price?")

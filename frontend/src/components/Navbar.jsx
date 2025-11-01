@@ -29,7 +29,7 @@ const Navbar = () => {
             </div>
             <div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent dark:from-neon-purple dark:to-neon-blue">
-                FinBot
+                FinSight AI
               </span>
               <span className="text-xs text-text-muted dark:text-dark-text-muted ml-1 block -mt-1">AI Trading Platform</span>
             </div>

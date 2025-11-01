@@ -1,4 +1,4 @@
-# FinBot AI 🤖📈
+# FinSight AI 🤖📈
 
 A comprehensive FinTech dashboard combining technical trading strategies, ML-based stock predictions, and an AI-powered finance chatbot.
 

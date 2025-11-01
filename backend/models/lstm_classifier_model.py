@@ -7,40 +7,37 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score, confusion_matrix
-import talib
+from ta.trend import SMAIndicator, EMAIndicator, MACD
+from ta.momentum import RSIIndicator
+from ta.volatility import BollingerBands, AverageTrueRange
 
 def create_lstm_features(df):
     """Create features for LSTM classification"""
     data = df.copy()
     
-    # Ensure float64 type for talib (critical!)
-    close = data['close'].astype(np.float64).values
-    high = data['high'].astype(np.float64).values
-    low = data['low'].astype(np.float64).values
-    volume = data['volume'].astype(np.float64).values
-    
     # Technical indicators
-    data['SMA_10'] = talib.SMA(close, timeperiod=10)
-    data['SMA_20'] = talib.SMA(close, timeperiod=20)
-    data['EMA_12'] = talib.EMA(close, timeperiod=12)
+    data['SMA_10'] = SMAIndicator(close=data['close'], window=10).sma_indicator()
+    data['SMA_20'] = SMAIndicator(close=data['close'], window=20).sma_indicator()
+    data['EMA_12'] = EMAIndicator(close=data['close'], window=12).ema_indicator()
     
     # MACD
-    macd, macdsignal, macdhist = talib.MACD(close)
-    data['MACD'] = macd
-    data['MACD_signal'] = macdsignal
+    macd_indicator = MACD(close=data['close'], window_fast=12, window_slow=26, window_sign=9)
+    data['MACD'] = macd_indicator.macd()
+    data['MACD_signal'] = macd_indicator.macd_signal()
     
     # RSI
-    data['RSI'] = talib.RSI(close, timeperiod=14)
+    data['RSI'] = RSIIndicator(close=data['close'], window=14).rsi()
     
     # Bollinger Bands
-    upper, middle, lower = talib.BBANDS(close, timeperiod=20)
-    data['BB_upper'] = upper
-    data['BB_middle'] = middle
-    data['BB_lower'] = lower
+    bb = BollingerBands(close=data['close'], window=20, window_dev=2)
+    data['BB_upper'] = bb.bollinger_hband()
+    data['BB_middle'] = bb.bollinger_mavg()
+    data['BB_lower'] = bb.bollinger_lband()
     data['BB_width'] = (data['BB_upper'] - data['BB_lower']) / data['BB_middle']
     
     # ATR
-    data['ATR'] = talib.ATR(high, low, close, timeperiod=14)
+    atr = AverageTrueRange(high=data['high'], low=data['low'], close=data['close'], window=14)
+    data['ATR'] = atr.average_true_range()
     
     # Volume
     data['Volume_norm'] = data['volume'] / data['volume'].rolling(20).mean()

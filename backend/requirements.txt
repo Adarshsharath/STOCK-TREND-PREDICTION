@@ -10,7 +10,6 @@ prophet
 statsmodels
 xgboost
 ta
-TA-Lib-binary
 requests
 python-dotenv
 gunicorn
