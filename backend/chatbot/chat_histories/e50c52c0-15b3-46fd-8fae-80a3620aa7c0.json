@@ -1,0 +1,13 @@
+{
+  "id": "e50c52c0-15b3-46fd-8fae-80a3620aa7c0",
+  "title": "Based on current market sentiment, what are the to...",
+  "created_at": "2025-11-01T17:21:27.527624",
+  "updated_at": "2025-11-01T17:21:27.535612",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Based on current market sentiment, what are the top 3 NIFTY 50 stocks showing bullish momentum this week?\u201d",
+      "timestamp": "2025-11-01T17:21:27.535612"
+    }
+  ]
+}
