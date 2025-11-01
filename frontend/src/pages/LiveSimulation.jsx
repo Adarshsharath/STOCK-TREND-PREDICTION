@@ -22,6 +22,16 @@ const SPEEDS = [
 ]
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n))
+const toTs = (d) => {
+  try {
+    const dt = new Date(d)
+    // Keep seconds precision for stable matching
+    return isNaN(dt.getTime()) ? String(d) : dt.toISOString().slice(0,19)
+  } catch { return String(d) }
+}
+const fmt = (d) => {
+  try { return new Date(d).toLocaleString() } catch { return String(d) }
+}
 
 export default function LiveSimulation() {
   const [strategy, setStrategy] = useState(STRATEGY_OPTIONS[0].id)
@@ -52,10 +62,15 @@ export default function LiveSimulation() {
         const res = await axios.get('/api/strategy', {
           params: { name: strategy, symbol, period }
         })
-        const d = (res.data?.data || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
+        // Normalize timestamps for stable comparisons
+        const d = (res.data?.data || [])
+          .map(p => ({ ...p, ts: toTs(p.date) }))
+          .sort((a,b)=> (a.ts > b.ts ? 1 : -1))
+        const buys = (res.data?.buy_signals || []).map(s => ({ ...s, ts: toTs(s.date) }))
+        const sells = (res.data?.sell_signals || []).map(s => ({ ...s, ts: toTs(s.date) }))
         setData(d)
-        setBuySignals(res.data?.buy_signals || [])
-        setSellSignals(res.data?.sell_signals || [])
+        setBuySignals(buys)
+        setSellSignals(sells)
       } catch (e) {
         setError('Failed to fetch data. Ensure backend is running and CORS/proxy is configured.')
       }
@@ -70,10 +85,10 @@ export default function LiveSimulation() {
   useEffect(() => {
     if (!currentSlice.length) return
     const lastPoint = currentSlice[currentSlice.length - 1]
-    const dateStr = lastPoint.date
+    const dateStr = lastPoint.ts
 
-    const isBuy = buySignals.some(s => s.date === dateStr)
-    const isSell = sellSignals.some(s => s.date === dateStr)
+    const isBuy = buySignals.some(s => s.ts === dateStr)
+    const isSell = sellSignals.some(s => s.ts === dateStr)
 
     if (isBuy) {
       // open new trade (assume 1 unit)
@@ -127,8 +142,8 @@ export default function LiveSimulation() {
     setTrades([])
   }
 
-  const buyMarkers = useMemo(() => currentSlice.filter(p => buySignals.some(s => s.date === p.date)), [currentSlice, buySignals])
-  const sellMarkers = useMemo(() => currentSlice.filter(p => sellSignals.some(s => s.date === p.date)), [currentSlice, sellSignals])
+  const buyMarkers = useMemo(() => currentSlice.filter(p => buySignals.some(s => s.ts === p.ts)), [currentSlice, buySignals])
+  const sellMarkers = useMemo(() => currentSlice.filter(p => sellSignals.some(s => s.ts === p.ts)), [currentSlice, sellSignals])
 
   return (
     <div className="space-y-6">
@@ -176,16 +191,19 @@ export default function LiveSimulation() {
         <Plot
           data={[
             {
-              x: currentSlice.map(p => p.date),
-              y: currentSlice.map(p => p.close),
-              type: 'scatter',
-              mode: 'lines',
-              name: 'Close',
-              line: { color: '#2563eb', width: 2 },
+              x: currentSlice.map(p => p.ts),
+              open: currentSlice.map(p => p.open),
+              high: currentSlice.map(p => p.high),
+              low: currentSlice.map(p => p.low),
+              close: currentSlice.map(p => p.close),
+              type: 'candlestick',
+              name: 'Price',
+              increasing: { line: { color: '#16a34a' } },
+              decreasing: { line: { color: '#dc2626' } }
             },
             // Buy markers
             {
-              x: buyMarkers.map(p => p.date),
+              x: buyMarkers.map(p => p.ts),
               y: buyMarkers.map(p => p.close),
               type: 'scatter',
               mode: 'markers',
@@ -194,7 +212,7 @@ export default function LiveSimulation() {
             },
             // Sell markers
             {
-              x: sellMarkers.map(p => p.date),
+              x: sellMarkers.map(p => p.ts),
               y: sellMarkers.map(p => p.close),
               type: 'scatter',
               mode: 'markers',
@@ -204,7 +222,7 @@ export default function LiveSimulation() {
           ]}
           layout={{
             autosize: true,
-            height: 480,
+            height: 520,
             margin: { l: 50, r: 20, t: 20, b: 40 },
             showlegend: true,
             paper_bgcolor: 'transparent',
@@ -256,7 +274,7 @@ export default function LiveSimulation() {
                 <div key={idx} className="p-3 rounded-lg border flex items-center justify-between">
                   <div>
                     <div className="font-medium">Long 1 @ {t.entryPrice.toFixed(2)}</div>
-                    <div className="text-xs text-text-muted">{t.entryDate}</div>
+                    <div className="text-xs text-text-muted">{fmt(t.entryDate)}</div>
                   </div>
                   {currentSlice.length>0 && (
                     <div className="text-right">
@@ -281,7 +299,7 @@ export default function LiveSimulation() {
                 <div key={idx} className="p-3 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">Long 1</div>
-                    <div className="text-xs text-text-muted">{t.entryDate}</div>
+                    <div className="text-xs text-text-muted">{fmt(t.entryDate)}</div>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <div className="text-xs">Entry</div>
@@ -293,6 +311,7 @@ export default function LiveSimulation() {
                         <div className="text-xs">Exit</div>
                         <div className="font-semibold">{t.exitPrice.toFixed(2)}</div>
                       </div>
+                      <div className="text-xs text-text-muted">{fmt(t.exitDate)}</div>
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-xs">PnL</div>
                         <div className={`font-semibold ${t.exitPrice - t.entryPrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>{(t.exitPrice - t.entryPrice).toFixed(2)}</div>
