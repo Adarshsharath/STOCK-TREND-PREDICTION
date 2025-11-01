@@ -304,7 +304,7 @@ const Finance = () => {
             className={`px-4 py-2 rounded-lg font-medium transition ${
               activeMarket === 'indian'
                 ? 'bg-primary text-white'
-                : 'bg-gray-100 text-text-light hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-dark-bg-elevated text-text-light dark:text-dark-text-secondary hover:bg-gray-200 dark:hover:bg-dark-bg-elevated dark:hover:text-dark-text'
             }`}
           >
             Indian Markets
@@ -314,7 +314,7 @@ const Finance = () => {
             className={`px-4 py-2 rounded-lg font-medium transition ${
               activeMarket === 'us'
                 ? 'bg-primary text-white'
-                : 'bg-gray-100 text-text-light hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-dark-bg-elevated text-text-light dark:text-dark-text-secondary hover:bg-gray-200 dark:hover:bg-dark-bg-elevated dark:hover:text-dark-text'
             }`}
           >
             US Markets
@@ -344,18 +344,18 @@ const Finance = () => {
                 onClick={() => handleStockSelect(stock)}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   selectedStock?.symbol === stock.symbol
-                    ? 'border-primary bg-blue-50'
-                    : 'border-border bg-white hover:border-primary hover:bg-gray-50'
+                    ? 'border-primary bg-blue-50 dark:bg-blue-900/30'
+                    : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-blue hover:bg-gray-50 dark:hover:bg-dark-bg-secondary'
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <p className="font-semibold text-text">{stock.symbol}</p>
-                    <p className="text-xs text-text-muted">{stock.name}</p>
+                    <p className="font-semibold text-text dark:text-dark-text">{stock.symbol}</p>
+                    <p className="text-xs text-text-muted dark:text-dark-text-muted">{stock.name}</p>
                   </div>
                   {hasPrice && (
                     <div className="text-right">
-                      <p className="text-sm font-bold text-text">
+                      <p className="text-sm font-bold text-text dark:text-dark-text">
                         {activeMarket === 'indian' ? '₹' : '$'}{priceData.price.toFixed(2)}
                       </p>
                       <div className={`text-xs font-semibold flex items-center justify-end ${
@@ -379,8 +379,8 @@ const Finance = () => {
 
       {/* Trading Type Selection */}
       {selectedStock && (
-        <div className="bg-white rounded-xl p-6 shadow-card">
-          <h2 className="text-xl font-bold text-text mb-4">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
+          <h2 className="text-xl font-bold text-text dark:text-dark-text mb-4">
             Choose Your Trading Style for {selectedStock.name}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -388,10 +388,10 @@ const Finance = () => {
               <button
                 key={type.id}
                 onClick={() => handleTradingTypeSelect(type)}
-                className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg ${
+                className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon ${
                   selectedTradingType?.id === type.id
-                    ? 'border-primary bg-blue-50'
-                    : 'border-border hover:border-primary'
+                    ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
+                    : 'border-border dark:border-dark-border hover:border-primary dark:hover:border-neon-blue bg-white dark:bg-dark-bg-elevated'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -404,9 +404,9 @@ const Finance = () => {
                     {type.risk} Risk
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-text mb-2">{type.name}</h3>
-                <p className="text-sm text-text-light mb-3">{type.description}</p>
-                <div className="space-y-2 text-xs text-text-muted">
+                <h3 className="text-xl font-bold text-text dark:text-dark-text mb-2">{type.name}</h3>
+                <p className="text-sm text-text-light dark:text-dark-text-secondary mb-3">{type.description}</p>
+                <div className="space-y-2 text-xs text-text-muted dark:text-dark-text-muted">
                   <p><Clock className="w-3 h-3 inline mr-1" /> <strong>Timeframe:</strong> {type.timeframe}</p>
                   <p><Target className="w-3 h-3 inline mr-1" /> <strong>Strategies:</strong> {type.strategies.join(', ')}</p>
                   <p><Zap className="w-3 h-3 inline mr-1" /> <strong>Models:</strong> {type.models.join(', ')}</p>
@@ -419,30 +419,30 @@ const Finance = () => {
 
       {/* Recommendation */}
       {loading && (
-        <div className="bg-white rounded-xl p-8 shadow-card text-center">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-8 shadow-card dark:shadow-dark-card text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-text-muted">Analyzing {selectedStock?.name} with {selectedTradingType?.name}...</p>
+          <p className="text-text-muted dark:text-dark-text-muted">Analyzing {selectedStock?.name} with {selectedTradingType?.name}...</p>
         </div>
       )}
 
       {recommendation && !loading && (
-        <div className={`rounded-xl p-6 shadow-card border-l-4 ${
+        <div className={`rounded-xl p-6 shadow-card dark:shadow-dark-card border-l-4 ${
           recommendation.action === 'BUY'
-            ? 'bg-green-50 border-green-500'
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-neon-green'
             : recommendation.action === 'WAIT'
-            ? 'bg-yellow-50 border-yellow-500'
-            : 'bg-red-50 border-red-500'
+            ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 dark:border-neon-orange'
+            : 'bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-neon-pink'
         }`}>
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-2xl font-bold text-text mb-2">
+              <h3 className="text-2xl font-bold text-text dark:text-dark-text mb-2">
                 {recommendation.action === 'BUY' 
                   ? '✅ Recommendation: BUY' 
                   : recommendation.action === 'SELL'
                   ? '🔴 Recommendation: SELL'
                   : '⚠️ Recommendation: WAIT'}
               </h3>
-              <p className="text-sm text-text-muted">Confidence: {recommendation.confidence}</p>
+              <p className="text-sm text-text-muted dark:text-dark-text-muted">Confidence: {recommendation.confidence}</p>
             </div>
             {(recommendation.action === 'BUY' || recommendation.action === 'WAIT' || recommendation.action === 'SELL') && recommendation.details && (
               <div className="flex space-x-3">

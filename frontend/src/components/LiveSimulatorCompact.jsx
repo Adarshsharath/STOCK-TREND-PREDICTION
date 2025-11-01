@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, Zap } from 'lucide-react'
+import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, Zap, Volume2, VolumeX } from 'lucide-react'
 import Plot from 'react-plotly.js'
 import axios from 'axios'
+import SignalNotificationContainer from './SignalNotification'
+import SignalDetailsModal from './SignalDetailsModal'
+import NotificationBell from './NotificationBell'
+import { playNotificationSound, requestNotificationPermission, showBrowserNotification } from '../utils/notificationSound'
 
 const LiveSimulatorCompact = () => {
   const [symbol, setSymbol] = useState('AAPL')
@@ -14,13 +18,33 @@ const LiveSimulatorCompact = () => {
   const [signals, setSignals] = useState([])
   const [loading, setLoading] = useState(false)
   const [dataSource, setDataSource] = useState('')
+  const [activeNotifications, setActiveNotifications] = useState([])
+  const [notificationHistory, setNotificationHistory] = useState([])
+  const [selectedSignal, setSelectedSignal] = useState(null)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(false)
   const intervalRef = useRef(null)
+  const notificationIdRef = useRef(0)
 
   const STRATEGIES = [
-    { id: 'macd', name: 'MACD' },
+    { id: 'ema_crossover', name: 'EMA Crossover' },
     { id: 'rsi', name: 'RSI' },
-    { id: 'ema_crossover', name: 'EMA Crossover' }
+    { id: 'macd', name: 'MACD' },
+    { id: 'bollinger_scalping', name: 'Bollinger Bands' },
+    { id: 'supertrend', name: 'SuperTrend' },
+    { id: 'ichimoku', name: 'Ichimoku Cloud' },
+    { id: 'adx_dmi', name: 'ADX + DMI' },
+    { id: 'vwap', name: 'VWAP' },
+    { id: 'breakout', name: 'Breakout' },
+    { id: 'ml_lstm', name: 'ML / LSTM' }
   ]
+
+  // Request notification permission on mount
+  useEffect(() => {
+    requestNotificationPermission().then(granted => {
+      setBrowserNotificationsEnabled(granted)
+    })
+  }, [])
 
   const fetchHistoricalData = async () => {
     setLoading(true)
@@ -28,6 +52,7 @@ const LiveSimulatorCompact = () => {
     setLiveData([])
     setSignals([])
     setCurrentIndex(0)
+    setActiveNotifications([])
     
     try {
       console.log(`[Simulator] Fetching data for ${symbol} with ${strategy} strategy...`)
@@ -96,11 +121,50 @@ const LiveSimulatorCompact = () => {
           setLiveData(prev => [...prev, newDataPoint])
           
           if (newDataPoint.signal !== 0) {
-            setSignals(prev => [...prev, {
-              type: newDataPoint.signal === 1 ? 'BUY' : 'SELL',
+            const signalType = newDataPoint.signal === 1 ? 'BUY' : 'SELL'
+            const strategyName = STRATEGIES.find(s => s.id === strategy)?.name || strategy
+            
+            const signal = {
+              type: signalType,
               price: newDataPoint.close,
-              index: nextIndex
-            }])
+              index: nextIndex,
+              strategyId: strategy,
+              strategyName: strategyName,
+              symbol: symbol,
+              date: newDataPoint.date,
+              timestamp: Date.now()
+            }
+            
+            setSignals(prev => [...prev, signal])
+            
+            // Create notification
+            const notification = {
+              id: notificationIdRef.current++,
+              ...signal
+            }
+            
+            // Add to active notifications (will auto-dismiss)
+            setActiveNotifications(prev => [...prev, notification])
+            
+            // Add to history (persists)
+            setNotificationHistory(prev => [notification, ...prev])
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+              setActiveNotifications(prev => prev.filter(n => n.id !== notification.id))
+            }, 3000)
+            
+            // Play sound
+            if (soundEnabled) {
+              playNotificationSound(signalType.toLowerCase())
+            }
+            
+            // Show browser notification
+            if (browserNotificationsEnabled) {
+              showBrowserNotification(signal)
+            }
+            
+            console.log(`[Signal] ${signalType} - ${strategyName} at $${newDataPoint.close.toFixed(2)}`)
           }
           
           return nextIndex
@@ -113,7 +177,7 @@ const LiveSimulatorCompact = () => {
         }
       }
     }
-  }, [isPlaying, speed, currentIndex, historicalData])
+  }, [isPlaying, speed, currentIndex, historicalData, strategy, symbol, soundEnabled, browserNotificationsEnabled])
 
   const handlePlayPause = () => {
     if (historicalData.length === 0) {
@@ -128,6 +192,24 @@ const LiveSimulatorCompact = () => {
     setCurrentIndex(0)
     setLiveData([])
     setSignals([])
+    setActiveNotifications([])
+  }
+
+  const handleCloseNotification = (notificationId) => {
+    setActiveNotifications(prev => prev.filter(n => n.id !== notificationId))
+  }
+
+  const handleMoreInfo = (notification) => {
+    setSelectedSignal(notification)
+    handleCloseNotification(notification.id)
+  }
+
+  const handleClearAllHistory = () => {
+    setNotificationHistory([])
+  }
+
+  const handleRemoveFromHistory = (notificationId) => {
+    setNotificationHistory(prev => prev.filter(n => n.id !== notificationId))
   }
 
   const chartData = liveData.length > 0 ? liveData : []
@@ -142,7 +224,23 @@ const LiveSimulatorCompact = () => {
   const isPositive = priceChange >= 0
 
   return (
-    <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-white">
+    <>
+      {/* Notifications */}
+      <SignalNotificationContainer
+        notifications={activeNotifications}
+        onClose={handleCloseNotification}
+        onMoreInfo={handleMoreInfo}
+      />
+
+      {/* Signal Details Modal */}
+      {selectedSignal && (
+        <SignalDetailsModal
+          signal={selectedSignal}
+          onClose={() => setSelectedSignal(null)}
+        />
+      )}
+
+      <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-white">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold mb-2 flex items-center">
@@ -162,15 +260,24 @@ const LiveSimulatorCompact = () => {
             Real-time market simulation with AI-powered signal detection
           </p>
         </div>
-        {chartData.length > 0 && (
-          <div className="bg-white bg-opacity-20 rounded-lg p-4">
-            <p className="text-sm text-white text-opacity-75 mb-1">Current Price</p>
-            <p className="text-2xl font-bold">${currentPrice.toFixed(2)}</p>
-            <div className={`text-sm font-semibold ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
-              {isPositive ? '+' : ''}{priceChange.toFixed(2)} ({isPositive ? '+' : ''}{((priceChange / previousPrice) * 100).toFixed(2)}%)
+        {/* Notification Bell */}
+        <div className="flex items-center space-x-4">
+          <NotificationBell
+            notifications={notificationHistory}
+            onClearAll={handleClearAllHistory}
+            onRemove={handleRemoveFromHistory}
+            onSelectNotification={(notification) => setSelectedSignal(notification)}
+          />
+          {chartData.length > 0 && (
+            <div className="bg-white bg-opacity-20 rounded-lg p-4">
+              <p className="text-sm text-white text-opacity-75 mb-1">Current Price</p>
+              <p className="text-2xl font-bold">${currentPrice.toFixed(2)}</p>
+              <div className={`text-sm font-semibold ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
+                {isPositive ? '+' : ''}{priceChange.toFixed(2)} ({isPositive ? '+' : ''}{((priceChange / previousPrice) * 100).toFixed(2)}%)
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Controls */}
@@ -240,6 +347,14 @@ const LiveSimulatorCompact = () => {
           className="bg-white bg-opacity-20 hover:bg-opacity-30 font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center"
         >
           <RotateCcw className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => setSoundEnabled(!soundEnabled)}
+          className="bg-white bg-opacity-20 hover:bg-opacity-30 font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center"
+          title={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+        >
+          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
         </button>
       </div>
 
@@ -336,6 +451,7 @@ const LiveSimulatorCompact = () => {
         </div>
       )}
     </div>
+    </>
   )
 }
 

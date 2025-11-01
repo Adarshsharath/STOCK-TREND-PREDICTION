@@ -286,18 +286,18 @@ const Predictions = () => {
       {!showAnalyze && (
         <>
           {/* Regression Models */}
-          <div className="bg-white rounded-xl p-6 shadow-card">
-            <h2 className="text-2xl font-bold text-text mb-2">📈 Price Prediction Models</h2>
-            <p className="text-text-muted mb-6">Predict exact future stock prices</p>
+          <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
+            <h2 className="text-2xl font-bold text-text dark:text-dark-text mb-2">📈 Price Prediction Models</h2>
+            <p className="text-text-muted dark:text-dark-text-muted mb-6">Predict exact future stock prices</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {MODELS.filter(m => m.category === 'regression').map(model => (
                 <button
                   key={model.id}
                   onClick={() => handleModelSelect(model.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg hover:scale-105 ${
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${
                     selectedModel === model.id
-                      ? 'border-primary bg-blue-50'
-                      : 'border-border hover:border-primary'
+                      ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
+                      : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -306,13 +306,13 @@ const Predictions = () => {
                       {model.accuracy}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-text mb-1">{model.name}</h3>
-                  <p className="text-xs text-text-muted mb-3">{model.fullName}</p>
-                  <p className="text-sm text-text-light mb-3">{model.description}</p>
+                  <h3 className="text-xl font-bold text-text dark:text-dark-text mb-1">{model.name}</h3>
+                  <p className="text-xs text-text-muted dark:text-dark-text-muted mb-3">{model.fullName}</p>
+                  <p className="text-sm text-text-light dark:text-dark-text-secondary mb-3">{model.description}</p>
                   <div className="space-y-2 text-xs">
                     <p><strong className="text-green-600">✓</strong> {model.pros}</p>
                     <p><strong className="text-red-600">✗</strong> {model.cons}</p>
-                    <p className="text-primary font-semibold">Best for: {model.bestFor}</p>
+                    <p className="text-primary dark:text-neon-purple font-semibold">Best for: {model.bestFor}</p>
                   </div>
                 </button>
               ))}
@@ -320,18 +320,18 @@ const Predictions = () => {
           </div>
 
           {/* Classification Models */}
-          <div className="bg-white rounded-xl p-6 shadow-card">
-            <h2 className="text-2xl font-bold text-text mb-2">🎯 Direction Prediction Models</h2>
-            <p className="text-text-muted mb-6">Predict if stock will go UP ⬆️ or DOWN ⬇️</p>
+          <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
+            <h2 className="text-2xl font-bold text-text dark:text-dark-text mb-2">🎯 Direction Prediction Models</h2>
+            <p className="text-text-muted dark:text-dark-text-muted mb-6">Predict if stock will go UP ⬆️ or DOWN ⬇️</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {MODELS.filter(m => m.category === 'classification').map(model => (
                 <button
                   key={model.id}
                   onClick={() => handleModelSelect(model.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg hover:scale-105 ${
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${
                     selectedModel === model.id
-                      ? 'border-primary bg-blue-50'
-                      : 'border-border hover:border-primary'
+                      ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
+                      : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -340,13 +340,13 @@ const Predictions = () => {
                       {model.accuracy}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-text mb-1">{model.name}</h3>
-                  <p className="text-xs text-text-muted mb-3">{model.fullName}</p>
-                  <p className="text-sm text-text-light mb-3">{model.description}</p>
+                  <h3 className="text-xl font-bold text-text dark:text-dark-text mb-1">{model.name}</h3>
+                  <p className="text-xs text-text-muted dark:text-dark-text-muted mb-3">{model.fullName}</p>
+                  <p className="text-sm text-text-light dark:text-dark-text-secondary mb-3">{model.description}</p>
                   <div className="space-y-2 text-xs">
                     <p><strong className="text-green-600">✓</strong> {model.pros}</p>
                     <p><strong className="text-red-600">✗</strong> {model.cons}</p>
-                    <p className="text-primary font-semibold">Best for: {model.bestFor}</p>
+                    <p className="text-primary dark:text-neon-purple font-semibold">Best for: {model.bestFor}</p>
                   </div>
                 </button>
               ))}
@@ -448,18 +448,18 @@ const Predictions = () => {
 
       {/* Loading Message */}
       {loading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-neon-blue rounded-xl p-6 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-blue-800 font-medium">Training {MODELS.find(m => m.id === selectedModel)?.name} model for {symbol}...</p>
-          <p className="text-blue-600 text-sm mt-2">ML model training may take 30-90 seconds. Please be patient.</p>
+          <p className="text-blue-800 dark:text-blue-300 font-medium">Training {MODELS.find(m => m.id === selectedModel)?.name} model for {symbol}...</p>
+          <p className="text-blue-600 dark:text-blue-400 text-sm mt-2">ML model training may take 30-90 seconds. Please be patient.</p>
         </div>
       )}
 
       {/* Error Message */}
       {error && !loading && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-red-800 font-medium">{error}</p>
-          <p className="text-red-600 text-sm mt-2">Try ARIMA model (fastest) or a shorter period, or check if the backend is running.</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-neon-pink rounded-xl p-4">
+          <p className="text-red-800 dark:text-red-300 font-medium">{error}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-2">Try ARIMA model (fastest) or a shorter period, or check if the backend is running.</p>
         </div>
       )}
 

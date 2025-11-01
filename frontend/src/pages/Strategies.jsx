@@ -38,27 +38,27 @@ const Strategies = () => {
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white rounded-xl p-6 shadow-card">
+      <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted dark:text-dark-text-muted" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search strategies..."
-              className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-2.5 border border-border dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-dark-bg-elevated text-text dark:text-dark-text"
             />
           </div>
 
           {/* Category Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted dark:text-dark-text-muted" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+              className="w-full pl-10 pr-4 py-2.5 border border-border dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none bg-white dark:bg-dark-bg-elevated text-text dark:text-dark-text"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>
@@ -76,7 +76,7 @@ const Strategies = () => {
           <div
             key={strategy.id}
             onClick={() => handleStrategyClick(strategy.id)}
-            className="group bg-white rounded-xl p-6 shadow-card hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-primary"
+            className="group bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card hover:shadow-lg dark:hover:shadow-neon transition-all cursor-pointer border-2 border-transparent hover:border-primary dark:hover:border-neon-purple"
           >
             {/* Icon and Name */}
             <div className="flex items-center justify-between mb-4">
@@ -85,26 +85,26 @@ const Strategies = () => {
                   {strategy.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-text group-hover:text-primary transition-colors">
+                  <h3 className="text-lg font-bold text-text dark:text-dark-text group-hover:text-primary dark:group-hover:text-neon-purple transition-colors">
                     {strategy.name}
                   </h3>
-                  <p className="text-xs text-text-muted">{strategy.category}</p>
+                  <p className="text-xs text-text-muted dark:text-dark-text-muted">{strategy.category}</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-text-muted group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              <ChevronRight className="w-5 h-5 text-text-muted dark:text-dark-text-muted group-hover:text-primary dark:group-hover:text-neon-purple group-hover:translate-x-1 transition-all" />
             </div>
 
             {/* Description */}
-            <p className="text-sm text-text-light mb-4 line-clamp-2">
+            <p className="text-sm text-text-light dark:text-dark-text-secondary mb-4 line-clamp-2">
               {strategy.description}
             </p>
 
             {/* Sub-strategies count */}
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <span className="text-xs text-text-muted">
+            <div className="flex items-center justify-between pt-4 border-t border-border dark:border-dark-border">
+              <span className="text-xs text-text-muted dark:text-dark-text-muted">
                 {strategy.subStrategies.length} Sub-Strategies
               </span>
-              <span className="text-xs font-semibold text-primary">
+              <span className="text-xs font-semibold text-primary dark:text-neon-purple">
                 Explore →
               </span>
             </div>
@@ -115,7 +115,7 @@ const Strategies = () => {
       {/* No results */}
       {filteredStrategies.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-text-muted">No strategies found matching your search.</p>
+          <p className="text-text-muted dark:text-dark-text-muted">No strategies found matching your search.</p>
         </div>
       )}
     </div>

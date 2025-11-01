@@ -168,8 +168,8 @@ const Home = () => {
               <p className="text-text-light mb-6">
                 Live stock data from Yahoo Finance with interactive charts and comprehensive market analysis.
               </p>
-              <Link to="/dashboard" className="text-primary font-semibold inline-flex items-center space-x-2 hover:underline">
-                <span>Open Dashboard</span>
+              <Link to="/about" className="text-primary font-semibold inline-flex items-center space-x-2 hover:underline">
+                <span>Learn More About Us</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </motion.div>
@@ -205,15 +205,15 @@ const Home = () => {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="bg-gradient-to-br from-primary to-primary-dark rounded-3xl p-12 text-center text-white">
-            <h2 className="text-4xl font-bold mb-4">Ready to Start Trading Smarter?</h2>
+            <h2 className="text-4xl font-bold mb-4">Want to Know More About Us?</h2>
             <p className="text-xl text-white text-opacity-90 mb-8 max-w-2xl mx-auto">
-              Join thousands of traders using AI-powered insights to make better investment decisions
+              Discover our mission, technology stack, and the team behind FinSight AI. Learn how we're revolutionizing trading with artificial intelligence.
             </p>
             <Link
-              to="/dashboard"
+              to="/about"
               className="inline-flex items-center space-x-2 bg-white text-primary px-8 py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-lg text-lg"
             >
-              <span>Dashboard</span>
+              <span>About Us</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>

@@ -35,51 +35,51 @@ const Dashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Card 1 */}
-        <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card hover:shadow-card-hover dark:hover:shadow-neon transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-text mb-1">{stats.totalStrategies}</div>
-          <div className="text-sm text-text-light">Trading Strategies</div>
-          <div className="text-xs text-text-muted mt-2">Available for analysis</div>
+          <div className="text-3xl font-bold text-text dark:text-dark-text mb-1">{stats.totalStrategies}</div>
+          <div className="text-sm text-text-light dark:text-dark-text-secondary">Trading Strategies</div>
+          <div className="text-xs text-text-muted dark:text-dark-text-muted mt-2">Available for analysis</div>
         </div>
 
         {/* Card 2 */}
-        <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card hover:shadow-card-hover dark:hover:shadow-neon transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-red-100 p-3 rounded-lg">
               <TrendingUp className="w-6 h-6 text-red-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-text mb-1">{stats.totalModels}</div>
-          <div className="text-sm text-text-light">ML Models</div>
-          <div className="text-xs text-text-muted mt-2">Prediction algorithms</div>
+          <div className="text-3xl font-bold text-text dark:text-dark-text mb-1">{stats.totalModels}</div>
+          <div className="text-sm text-text-light dark:text-dark-text-secondary">ML Models</div>
+          <div className="text-xs text-text-muted dark:text-dark-text-muted mt-2">Prediction algorithms</div>
         </div>
 
         {/* Card 3 */}
-        <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card hover:shadow-card-hover dark:hover:shadow-neon transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-green-100 p-3 rounded-lg">
               <Activity className="w-6 h-6 text-green-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-text mb-1">1000+</div>
-          <div className="text-sm text-text-light">Stock Symbols</div>
-          <div className="text-xs text-text-muted mt-2">Available for trading</div>
+          <div className="text-3xl font-bold text-text dark:text-dark-text mb-1">1000+</div>
+          <div className="text-sm text-text-light dark:text-dark-text-secondary">Stock Symbols</div>
+          <div className="text-xs text-text-muted dark:text-dark-text-muted mt-2">Available for trading</div>
         </div>
 
         {/* Card 4 */}
-        <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow">
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card hover:shadow-card-hover dark:hover:shadow-neon transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-yellow-100 p-3 rounded-lg">
               <DollarSign className="w-6 h-6 text-yellow-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-text mb-1">24/7</div>
-          <div className="text-sm text-text-light">AI Assistant</div>
-          <div className="text-xs text-text-muted mt-2">Always available</div>
+          <div className="text-3xl font-bold text-text dark:text-dark-text mb-1">24/7</div>
+          <div className="text-sm text-text-light dark:text-dark-text-secondary">AI Assistant</div>
+          <div className="text-xs text-text-muted dark:text-dark-text-muted mt-2">Always available</div>
         </div>
       </div>
 
@@ -94,8 +94,8 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-8 shadow-card">
-          <h3 className="text-xl font-bold text-text mb-4">Available Strategies (10)</h3>
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-8 shadow-card dark:shadow-dark-card">
+          <h3 className="text-xl font-bold text-text dark:text-dark-text mb-4">Available Strategies (10)</h3>
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
             {[
               { 
@@ -169,26 +169,26 @@ const Dashboard = () => {
                 id: 'stochastic' 
               }
             ].map((strategy, idx) => (
-              <div key={idx} className="border border-border rounded-lg overflow-hidden">
+              <div key={idx} className="border border-border dark:border-dark-border rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedStrategy(expandedStrategy === idx ? null : idx)}
-                  className="w-full flex items-center justify-between p-3 bg-background hover:bg-primary hover:text-white transition-all group text-left"
+                  className="w-full flex items-center justify-between p-3 bg-background dark:bg-dark-bg-elevated hover:bg-primary hover:text-white transition-all group text-left"
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full bg-${strategy.color}-500`}></div>
                     <div>
-                      <div className="font-medium text-text group-hover:text-white">{strategy.name}</div>
-                      <div className="text-xs text-text-muted group-hover:text-white group-hover:text-opacity-90">{strategy.desc}</div>
+                      <div className="font-medium text-text dark:text-dark-text group-hover:text-white">{strategy.name}</div>
+                      <div className="text-xs text-text-muted dark:text-dark-text-muted group-hover:text-white group-hover:text-opacity-90">{strategy.desc}</div>
                     </div>
                   </div>
                   {expandedStrategy === idx ? 
-                    <ChevronUp className="w-4 h-4 text-text-muted group-hover:text-white" /> : 
-                    <ChevronDown className="w-4 h-4 text-text-muted group-hover:text-white" />
+                    <ChevronUp className="w-4 h-4 text-text-muted dark:text-dark-text-muted group-hover:text-white" /> : 
+                    <ChevronDown className="w-4 h-4 text-text-muted dark:text-dark-text-muted group-hover:text-white" />
                   }
                 </button>
                 {expandedStrategy === idx && (
-                  <div className="p-4 bg-blue-50 border-t border-border">
-                    <p className="text-sm text-text-light mb-3">{strategy.fullDesc}</p>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-t border-border dark:border-dark-border">
+                    <p className="text-sm text-text-light dark:text-dark-text-secondary mb-3">{strategy.fullDesc}</p>
                     <button
                       onClick={() => navigate(`/learn/${strategy.id}`)}
                       className="inline-flex items-center space-x-2 text-primary hover:underline font-medium text-sm"
@@ -203,8 +203,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-8 shadow-card">
-          <h3 className="text-xl font-bold text-text mb-4">ML Prediction Models (10)</h3>
+        <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-8 shadow-card dark:shadow-dark-card">
+          <h3 className="text-xl font-bold text-text dark:text-dark-text mb-4">ML Prediction Models (10)</h3>
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
             {[
               { 
@@ -268,26 +268,26 @@ const Dashboard = () => {
                 color: 'cyan' 
               }
             ].map((model, idx) => (
-              <div key={idx} className="border border-border rounded-lg overflow-hidden">
+              <div key={idx} className="border border-border dark:border-dark-border rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedModel(expandedModel === idx ? null : idx)}
-                  className="w-full flex items-center justify-between p-3 bg-background hover:bg-primary hover:text-white transition-all group text-left"
+                  className="w-full flex items-center justify-between p-3 bg-background dark:bg-dark-bg-elevated hover:bg-primary hover:text-white transition-all group text-left"
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full bg-${model.color}-500`}></div>
                     <div>
-                      <div className="font-medium text-text group-hover:text-white">{model.name}</div>
-                      <div className="text-xs text-text-muted group-hover:text-white group-hover:text-opacity-90">{model.desc}</div>
+                      <div className="font-medium text-text dark:text-dark-text group-hover:text-white">{model.name}</div>
+                      <div className="text-xs text-text-muted dark:text-dark-text-muted group-hover:text-white group-hover:text-opacity-90">{model.desc}</div>
                     </div>
                   </div>
                   {expandedModel === idx ? 
-                    <ChevronUp className="w-4 h-4 text-text-muted group-hover:text-white" /> : 
-                    <ChevronDown className="w-4 h-4 text-text-muted group-hover:text-white" />
+                    <ChevronUp className="w-4 h-4 text-text-muted dark:text-dark-text-muted group-hover:text-white" /> : 
+                    <ChevronDown className="w-4 h-4 text-text-muted dark:text-dark-text-muted group-hover:text-white" />
                   }
                 </button>
                 {expandedModel === idx && (
-                  <div className="p-4 bg-green-50 border-t border-border">
-                    <p className="text-sm text-text-light">{model.fullDesc}</p>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-t border-border dark:border-dark-border">
+                    <p className="text-sm text-text-light dark:text-dark-text-secondary">{model.fullDesc}</p>
                   </div>
                 )}
               </div>

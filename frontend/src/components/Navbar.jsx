@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, DollarSign, LogOut, User as UserIcon, Zap } from 'lucide-react'
+import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, IndianRupee, LogOut, User as UserIcon, Zap } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -13,7 +13,7 @@ const Navbar = () => {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/finance', label: 'Finance', icon: DollarSign },
+    { path: '/finance', label: 'Finance', icon: IndianRupee },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -30,7 +30,7 @@ const Navbar = () => {
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent dark:from-neon-purple dark:to-neon-blue">
+              <span className="text-xl font-bold text-primary dark:text-neon-purple">
                 FinSight AI
               </span>
               <span className="text-xs text-text-muted dark:text-dark-text-muted ml-1 block -mt-1">AI Trading Platform</span>
