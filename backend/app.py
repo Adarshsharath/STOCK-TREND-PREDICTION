@@ -127,6 +127,25 @@ MODELS = {
     'svm': svm_classifier_predict
 }
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint - API information"""
+    return jsonify({
+        'message': 'FinSight AI Backend API',
+        'status': 'running',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/api/health',
+            'strategies': '/api/strategies',
+            'strategy': '/api/strategy?name=<strategy>&symbol=<symbol>&period=<period>',
+            'models': '/api/models',
+            'predict': '/api/predict?model=<model>&symbol=<symbol>&period=<period>',
+            'chatbot': '/api/chatbot (POST)',
+            'market_overview': '/api/market-overview'
+        },
+        'docs': 'Visit /api/health to check server status'
+    })
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -671,4 +690,5 @@ def get_simulator_data():
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
