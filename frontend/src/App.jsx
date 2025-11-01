@@ -8,6 +8,7 @@ import Predictions from './pages/Predictions'
 import Dashboard from './pages/Dashboard'
 import About from './pages/About'
 import LiveMarket from './pages/LiveMarket'
+import LiveSimulation from './pages/LiveSimulation'
 import Chatbot from './components/Chatbot'
 import { ChatProvider } from './context/ChatContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -23,6 +24,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/live-market" element={<LiveMarket />} />
+              <Route path="/live-simulation" element={<LiveSimulation />} />
               <Route path="/strategies" element={<Strategies />} />
               <Route path="/strategies/:strategyId" element={<StrategyDetail />} />
               <Route path="/predictions" element={<Predictions />} />

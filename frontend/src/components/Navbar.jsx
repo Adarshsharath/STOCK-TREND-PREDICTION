@@ -12,6 +12,7 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/live-market', label: 'Live Market', icon: Activity },
+    { path: '/live-simulation', label: 'Live Simulation', icon: TrendingUp },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },

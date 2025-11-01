@@ -14,7 +14,6 @@ from utils.fetch_data import fetch_stock_data
 from utils.sentiment_volatility import analyze_market_sentiment, calculate_atr_volatility
 from utils.explainability import generate_prediction_reasoning
 from utils.market_overview import get_market_indices, generate_market_summary, get_top_gainers_losers
-from utils.weather_alerts import fetch_weather_alerts, get_disaster_impact_info
 from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
 from utils.confidence_calculator import get_confidence_explanation
 from utils.market_data import fetch_market_valuation, get_market_summary
@@ -357,26 +356,6 @@ def get_sentiment_volatility():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/weather-alerts', methods=['GET'])
-def get_weather_alerts():
-    """
-    Get weather and natural disaster alerts for major financial centers
-    
-    Query Parameters:
-        city: Specific city to check (optional)
-    """
-    try:
-        city = request.args.get('city', None)
-        alerts = fetch_weather_alerts(city)
-        return jsonify(alerts)
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/disaster-impact-info', methods=['GET'])
-def disaster_impact_info():
-    """Get information about how disasters impact markets"""
-    return jsonify(get_disaster_impact_info())
 
 @app.route('/api/news-sentiment', methods=['GET'])
 def get_news_sentiment():
