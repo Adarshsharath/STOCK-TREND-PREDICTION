@@ -8,7 +8,7 @@ const LiveMarket = () => {
   const [topMovers, setTopMovers] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [selectedMarket, setSelectedMarket] = useState('US')
+  const [selectedMarket, setSelectedMarket] = useState('IN')
 
   const fetchMarketData = async () => {
     setLoading(true)

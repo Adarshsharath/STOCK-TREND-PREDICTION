@@ -17,7 +17,7 @@ function App() {
     <ThemeProvider>
       <ChatProvider>
         <Router>
-          <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors">
+          <div className="min-h-screen bg-background dark:bg-dark-bg-primary transition-colors">
           <Navbar />
           <main className="container mx-auto px-6 py-8">
             <Routes>

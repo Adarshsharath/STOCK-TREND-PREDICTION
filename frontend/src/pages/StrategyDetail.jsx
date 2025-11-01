@@ -16,7 +16,7 @@ const StrategyDetail = () => {
   
   const [selectedSubStrategy, setSelectedSubStrategy] = useState('')
   const [selectedTimeframe, setSelectedTimeframe] = useState('1d')
-  const [symbol, setSymbol] = useState('AAPL')
+  const [symbol, setSymbol] = useState('RELIANCE.NS')
   const [period, setPeriod] = useState('1y')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
@@ -244,7 +244,7 @@ const StrategyDetail = () => {
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="e.g., AAPL"
+              placeholder="e.g., RELIANCE.NS, TCS.NS"
               className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -270,8 +270,29 @@ const StrategyDetail = () => {
         </div>
       </div>
 
-      {/* Market Info Panels - Always visible */}
-      {symbol && (
+      {/* Analyze Button - Moved above panels */}
+      <div className="bg-white rounded-xl p-6 shadow-card">
+        <button
+          onClick={handleAnalyze}
+          disabled={loading || !symbol}
+          className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Analyzing...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-5 h-5" />
+              <span>Analyze Strategy</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Market Info Panels - Only visible when no results */}
+      {symbol && !results && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <MarketValuation symbol={symbol} />
           <NewsSentiment symbol={symbol} />
@@ -318,27 +339,6 @@ const StrategyDetail = () => {
           </div>
         </div>
       )}
-
-      {/* Analyze Button */}
-      <div className="bg-white rounded-xl p-6 shadow-card">
-        <button
-          onClick={handleAnalyze}
-          disabled={loading || !symbol}
-          className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Analyzing...</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5" />
-              <span>Analyze Strategy</span>
-            </>
-          )}
-        </button>
-      </div>
 
       {/* Error Message */}
       {error && (
