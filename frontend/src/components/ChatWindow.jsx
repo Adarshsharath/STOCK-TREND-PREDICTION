@@ -125,7 +125,7 @@ const ChatWindow = () => {
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      className="fixed bottom-24 right-6 w-[900px] h-[550px] bg-white border border-gray-200 rounded-2xl shadow-2xl flex overflow-hidden"
+      className="fixed bottom-24 right-6 w-[1100px] h-[700px] max-w-[95vw] max-h-[85vh] bg-white border border-gray-200 rounded-2xl shadow-2xl flex overflow-hidden"
       style={{ zIndex: 9998 }}
     >
       {/* Sidebar */}
