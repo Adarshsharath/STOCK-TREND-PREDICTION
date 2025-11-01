@@ -1,12 +1,37 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2 } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2, AlertCircle } from 'lucide-react'
 import axios from 'axios'
 import StrategyChart from '../components/StrategyChart'
 import MarketValuation from '../components/MarketValuation'
 import NewsSentiment from '../components/NewsSentiment'
 import SignalStrength from '../components/SignalStrength'
 import { strategiesData } from '../data/strategiesData'
+
+// Timeframe enforcement mapping
+const strategyTimeframes = {
+  'ema-crossover': ['5min', '15min', '30min', '1h', '4h', '1d'],
+  'rsi': ['15min', '30min', '1h', '1d'],
+  'macd': ['1h', '4h', '1d', '1wk'],
+  'bollinger': ['5min', '15min', '1h', '1d'],
+  'supertrend': ['15min', '30min', '1h', '1d'],
+  'ichimoku': ['1h', '4h', '1d', '1wk'],
+  'adx-dmi': ['15min', '1h', '1d'],
+  'vwap': ['1min', '5min', '15min'],
+  'breakout': ['1h', '4h', '1d'],
+  'ml-lstm': ['1d', '1wk']
+}
+
+const timeframeLabels = {
+  '1min': '1 Minute (Scalping)',
+  '5min': '5 Minutes (Scalping)',
+  '15min': '15 Minutes (Intraday)',
+  '30min': '30 Minutes (Intraday)',
+  '1h': '1 Hour (Intraday/Swing)',
+  '4h': '4 Hours (Swing)',
+  '1d': '1 Day (Swing/Position)',
+  '1wk': '1 Week (Position)'
+}
 
 const StrategyDetail = () => {
   const { strategyId } = useParams()
@@ -22,11 +47,19 @@ const StrategyDetail = () => {
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
 
+  // Get valid timeframes for current strategy
+  const validTimeframes = strategyTimeframes[strategyId] || ['1d']
+  const isTimeframeValid = (tf) => validTimeframes.includes(tf)
+
   useEffect(() => {
     if (strategy && strategy.subStrategies.length > 0) {
       setSelectedSubStrategy(strategy.subStrategies[0].id)
     }
-  }, [strategy])
+    // Auto-set first valid timeframe for this strategy
+    if (strategyId && validTimeframes.length > 0) {
+      setSelectedTimeframe(validTimeframes[0])
+    }
+  }, [strategy, strategyId])
 
   if (!strategy) {
     return (
@@ -42,7 +75,8 @@ const StrategyDetail = () => {
     )
   }
 
-  const timeframes = [
+  // All timeframes with validity check
+  const allTimeframes = [
     { value: '1min', label: '1 Minute' },
     { value: '5min', label: '5 Minutes' },
     { value: '15min', label: '15 Minutes' },
@@ -52,6 +86,18 @@ const StrategyDetail = () => {
     { value: '1d', label: '1 Day' },
     { value: '1wk', label: '1 Week' }
   ]
+
+  // Get timeframe recommendation text
+  const getTimeframeRecommendation = () => {
+    const labels = validTimeframes.map(tf => timeframeLabels[tf] || tf)
+    if (validTimeframes.includes('1min') || validTimeframes.includes('5min')) {
+      return `⏱ Recommended: ${labels.join(', ')} | Best for Scalping/Intraday`
+    } else if (validTimeframes.includes('1d') || validTimeframes.includes('1wk')) {
+      return `⏱ Recommended: ${labels.join(', ')} | Best for Swing/Position Trading`
+    } else {
+      return `⏱ Recommended: ${labels.join(', ')} | Best for Intraday/Swing Trading`
+    }
+  }
 
   const selectedSubStrategyData = strategy.subStrategies.find(s => s.id === selectedSubStrategy)
 
@@ -227,12 +273,22 @@ const StrategyDetail = () => {
               onChange={(e) => setSelectedTimeframe(e.target.value)}
               className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              {timeframes.map(tf => (
-                <option key={tf.value} value={tf.value}>
-                  {tf.label}
+              {allTimeframes.map(tf => (
+                <option 
+                  key={tf.value} 
+                  value={tf.value}
+                  disabled={!isTimeframeValid(tf.value)}
+                  className={!isTimeframeValid(tf.value) ? 'text-gray-400' : ''}
+                >
+                  {tf.label} {!isTimeframeValid(tf.value) ? '(Not supported)' : ''}
                 </option>
               ))}
             </select>
+            {/* Timeframe Recommendation */}
+            <div className="mt-2 flex items-start space-x-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+              <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <p>{getTimeframeRecommendation()}</p>
+            </div>
           </div>
 
           {/* Stock Symbol */}

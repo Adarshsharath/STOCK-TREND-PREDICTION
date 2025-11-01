@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Plot from 'react-plotly.js'
+import { BarChart3, TrendingUp } from 'lucide-react'
 
 const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
+  const [isCandlestick, setIsCandlestick] = useState(false)
   if (!data || data.length === 0) {
     return (
       <div className="bg-card border border-border rounded-lg p-8 flex items-center justify-center">
@@ -17,15 +19,28 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
   const sellDates = sellSignals.map(s => s.date)
   const sellPrices = sellSignals.map(s => s.close)
 
+  // Price trace - either line or candlestick
+  const priceTrace = isCandlestick ? {
+    x: dates,
+    open: data.map(d => d.open),
+    high: data.map(d => d.high),
+    low: data.map(d => d.low),
+    close: data.map(d => d.close),
+    type: 'candlestick',
+    name: 'Price',
+    increasing: { line: { color: '#22c55e' } },
+    decreasing: { line: { color: '#ef4444' } }
+  } : {
+    x: dates,
+    y: prices,
+    type: 'scatter',
+    mode: 'lines',
+    name: 'Price',
+    line: { color: '#38bdf8', width: 2 }
+  }
+
   const traces = [
-    {
-      x: dates,
-      y: prices,
-      type: 'scatter',
-      mode: 'lines',
-      name: 'Price',
-      line: { color: '#38bdf8', width: 2 }
-    },
+    priceTrace,
     {
       x: buyDates,
       y: buyPrices,
@@ -65,7 +80,7 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
       color: '#64748b'
     },
     yaxis: {
-      title: 'Price ($)',
+      title: 'Price (₹)',
       gridcolor: '#e2e8f0',
       color: '#64748b'
     },
@@ -87,11 +102,36 @@ const StrategyChart = ({ data, buySignals, sellSignals, strategyName }) => {
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-card">
+      {/* Chart Type Toggle */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-text">Chart View</h3>
+        <button
+          onClick={() => setIsCandlestick(prev => !prev)}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+            isCandlestick
+              ? 'bg-primary text-white shadow-md'
+              : 'bg-gray-100 text-text-light hover:bg-gray-200'
+          }`}
+        >
+          {isCandlestick ? (
+            <>
+              <BarChart3 className="w-4 h-4" />
+              <span>Candlestick</span>
+            </>
+          ) : (
+            <>
+              <TrendingUp className="w-4 h-4" />
+              <span>Line Chart</span>
+            </>
+          )}
+        </button>
+      </div>
+
       <Plot
         data={traces}
         layout={layout}
         config={config}
-        style={{ width: '100%', height: '500px' }}
+        style={{ width: '100%', height: '650px' }}
         useResizeHandler={true}
       />
     </div>

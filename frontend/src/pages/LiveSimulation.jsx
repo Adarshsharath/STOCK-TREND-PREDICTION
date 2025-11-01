@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
 import axios from 'axios'
-import { Play, Pause, RotateCcw, Zap, Clock, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
+import { Play, Pause, RotateCcw, Zap, Clock, DollarSign, TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle, BarChart3 } from 'lucide-react'
 
 const STRATEGY_OPTIONS = [
   { id: 'ema_crossover', label: 'EMA Crossover' },
@@ -44,6 +44,7 @@ export default function LiveSimulation() {
   const [sellSignals, setSellSignals] = useState([])
   const [index, setIndex] = useState(0)
   const [error, setError] = useState('')
+  const [isCandlestick, setIsCandlestick] = useState(true)
 
   // Trading state
   const [trades, setTrades] = useState([]) // {entryDate, entryPrice, exitDate?, exitPrice?}
@@ -188,9 +189,35 @@ export default function LiveSimulation() {
 
       {/* Chart */}
       <div className="bg-white dark:bg-dark-bg-secondary rounded-2xl p-4 shadow-card border border-border dark:border-dark-border">
+        {/* Chart Type Toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-text">Live Price Chart</h3>
+          <button
+            onClick={() => setIsCandlestick(prev => !prev)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              isCandlestick
+                ? 'bg-primary text-white shadow-md'
+                : 'bg-gray-100 text-text-light hover:bg-gray-200'
+            }`}
+          >
+            {isCandlestick ? (
+              <>
+                <BarChart3 className="w-4 h-4" />
+                <span>Candlestick</span>
+              </>
+            ) : (
+              <>
+                <TrendingUp className="w-4 h-4" />
+                <span>Line Chart</span>
+              </>
+            )}
+          </button>
+        </div>
+
         <Plot
           data={[
-            {
+            // Price trace - either candlestick or line
+            isCandlestick ? {
               x: currentSlice.map(p => p.ts),
               open: currentSlice.map(p => p.open),
               high: currentSlice.map(p => p.high),
@@ -200,6 +227,13 @@ export default function LiveSimulation() {
               name: 'Price',
               increasing: { line: { color: '#16a34a' } },
               decreasing: { line: { color: '#dc2626' } }
+            } : {
+              x: currentSlice.map(p => p.ts),
+              y: currentSlice.map(p => p.close),
+              type: 'scatter',
+              mode: 'lines',
+              name: 'Close',
+              line: { color: '#2563eb', width: 2 }
             },
             // Buy markers
             {
@@ -235,13 +269,72 @@ export default function LiveSimulation() {
         />
       </div>
 
+      {/* Recommendation Panel */}
+      {pnl.total !== 0 && trades.length > 0 && (
+        <div className={`rounded-2xl p-5 shadow-card border ${
+          pnl.total >= 0 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-start space-x-3">
+            {pnl.total >= 0 ? (
+              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <h3 className={`font-bold text-lg mb-2 ${pnl.total >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+                {pnl.total >= 0 ? '✅ Profitable Strategy' : '⚠️ Strategy Showing Losses'}
+              </h3>
+              <p className={`text-sm mb-3 ${pnl.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {pnl.total >= 0 ? (
+                  <>
+                    This strategy has generated a <strong>profit of ${pnl.total.toFixed(2)}</strong> on the simulated trades. 
+                    The strategy is currently working well for <strong>{symbol}</strong>. You may consider following the signals.
+                  </>
+                ) : (
+                  <>
+                    This strategy has resulted in a <strong>loss of ${Math.abs(pnl.total).toFixed(2)}</strong> on the simulated trades. 
+                    <strong className="block mt-2">⚠️ Not recommended to buy {symbol} using this strategy at this time.</strong> 
+                    Consider trying a different strategy or waiting for better market conditions.
+                  </>
+                )}
+              </p>
+              <div className="text-xs space-y-1">
+                <p className={pnl.total >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  <strong>What this means:</strong> {pnl.total >= 0 
+                    ? 'If you had followed these buy/sell signals in the past, you would have made money.'
+                    : 'If you had followed these buy/sell signals in the past, you would have lost money.'}
+                </p>
+                {pnl.openTrades > 0 && (
+                  <p className={pnl.total >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    You currently have {pnl.openTrades} open position{pnl.openTrades > 1 ? 's' : ''} with ${pnl.open >= 0 ? '+' : ''}{pnl.open.toFixed(2)} unrealized profit/loss.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Trading Signals & PnL Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Stats */}
         <div className="bg-white dark:bg-dark-bg-secondary rounded-2xl p-5 shadow-card border border-border dark:border-dark-border">
-          <div className="flex items-center space-x-2 mb-3">
-            <DollarSign className="w-5 h-5 text-primary"/>
-            <h3 className="font-semibold">Performance</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="w-5 h-5 text-primary"/>
+              <h3 className="font-semibold">Performance</h3>
+            </div>
+            <div className="group relative">
+              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute right-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
+                <p className="font-semibold mb-1">Understanding Performance Metrics:</p>
+                <p className="mb-2"><strong>Realized PnL:</strong> Profit/Loss from completed trades (bought and sold)</p>
+                <p className="mb-2"><strong>Open PnL:</strong> Current profit/loss on positions still held</p>
+                <p><strong>Total PnL:</strong> Combined profit/loss (Realized + Open)</p>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="p-3 rounded-lg bg-green-50">
@@ -265,7 +358,18 @@ export default function LiveSimulation() {
 
         {/* Open Trades */}
         <div className="bg-white dark:bg-dark-bg-secondary rounded-2xl p-5 shadow-card border border-border dark:border-dark-border">
-          <h3 className="font-semibold mb-3">Open Positions</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Open Positions</h3>
+            <div className="group relative">
+              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute right-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
+                <p className="font-semibold mb-1">What are Open Positions?</p>
+                <p className="mb-2">These are stocks you've bought but haven't sold yet.</p>
+                <p className="mb-2"><strong>Long 1 @ $XX:</strong> You bought 1 share at price $XX</p>
+                <p><strong>Unrealized:</strong> How much profit/loss you have right now (not sold yet, so not final)</p>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2 text-sm">
             {trades.filter(t => !t.exitDate).length === 0 ? (
               <p className="text-text-muted dark:text-dark-text-muted">No open positions</p>
@@ -290,7 +394,20 @@ export default function LiveSimulation() {
 
         {/* Trade History */}
         <div className="bg-white dark:bg-dark-bg-secondary rounded-2xl p-5 shadow-card border border-border dark:border-dark-border">
-          <h3 className="font-semibold mb-3">Trade History</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Trade History</h3>
+            <div className="group relative">
+              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute right-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
+                <p className="font-semibold mb-1">Understanding Trade History:</p>
+                <p className="mb-2"><strong>Entry:</strong> Price at which you bought the stock</p>
+                <p className="mb-2"><strong>Exit:</strong> Price at which you sold the stock</p>
+                <p className="mb-2"><strong>PnL (Profit & Loss):</strong> Exit price - Entry price</p>
+                <p><strong>Green = Profit</strong>, <strong>Red = Loss</strong></p>
+                <p className="mt-2 text-yellow-300">Trades marked "Open" are still active (not yet sold)</p>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2 text-sm max-h-[260px] overflow-y-auto">
             {trades.length === 0 ? (
               <p className="text-text-muted dark:text-dark-text-muted">No trades yet</p>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Users, TrendingUp, TrendingDown, Activity, DollarSign } from 'lucide-react'
+import { Users, TrendingUp, TrendingDown, Activity, DollarSign, BookOpen } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import WeatherAlerts from '../components/WeatherAlerts'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalStrategies: 5,
     totalModels: 5,
@@ -94,22 +96,26 @@ const Dashboard = () => {
           <h3 className="text-xl font-bold text-text mb-4">Available Strategies</h3>
           <div className="space-y-3">
             {[
-              { name: 'EMA Crossover', desc: 'Moving average crossover signals', color: 'blue' },
-              { name: 'RSI Strategy', desc: 'Overbought/oversold momentum', color: 'purple' },
-              { name: 'MACD Strategy', desc: 'Trend following with MACD', color: 'green' },
-              { name: 'Bollinger Scalping', desc: 'Mean reversion trading', color: 'orange' },
-              { name: 'SuperTrend', desc: 'ATR-based trend indicator', color: 'red' }
+              { name: 'EMA Crossover', desc: 'Moving average crossover signals', color: 'blue', id: 'ema-crossover' },
+              { name: 'RSI Strategy', desc: 'Overbought/oversold momentum', color: 'purple', id: 'rsi' },
+              { name: 'MACD Strategy', desc: 'Trend following with MACD', color: 'green', id: 'macd' },
+              { name: 'Bollinger Scalping', desc: 'Mean reversion trading', color: 'orange', id: 'bollinger' },
+              { name: 'SuperTrend', desc: 'ATR-based trend indicator', color: 'red', id: 'supertrend' }
             ].map((strategy, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-background-dark transition-colors">
+              <button
+                key={idx}
+                onClick={() => navigate(`/learn/${strategy.id}`)}
+                className="w-full flex items-center justify-between p-3 bg-background rounded-lg hover:bg-primary hover:text-white transition-all group text-left"
+              >
                 <div className="flex items-center space-x-3">
                   <div className={`w-2 h-2 rounded-full bg-${strategy.color}-500`}></div>
                   <div>
-                    <div className="font-medium text-text">{strategy.name}</div>
-                    <div className="text-xs text-text-muted">{strategy.desc}</div>
+                    <div className="font-medium text-text group-hover:text-white">{strategy.name}</div>
+                    <div className="text-xs text-text-muted group-hover:text-white group-hover:text-opacity-90">{strategy.desc}</div>
                   </div>
                 </div>
-                <TrendingUp className="w-4 h-4 text-text-muted" />
-              </div>
+                <BookOpen className="w-4 h-4 text-text-muted group-hover:text-white" />
+              </button>
             ))}
           </div>
         </div>
