@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Brain, Loader2, Search, ArrowLeft } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 import PredictionChart from '../components/PredictionChart'
 import InfoCard from '../components/InfoCard'
 import WeatherAlerts from '../components/WeatherAlerts'
@@ -165,7 +165,7 @@ const Predictions = () => {
   const fetchSentimentVolatility = async (stockSymbol) => {
     setSvLoading(true)
     try {
-      const response = await axios.get('/api/sentiment-volatility', {
+      const response = await api.get('/api/sentiment-volatility', {
         params: {
           symbol: stockSymbol.toUpperCase(),
           period: '1y'
@@ -199,7 +199,7 @@ const Predictions = () => {
     setData(null)
 
     try {
-      const response = await axios.get('/api/predict', {
+      const response = await api.get('/api/predict', {
         params: {
           model: selectedModel,
           symbol: symbol.toUpperCase(),
