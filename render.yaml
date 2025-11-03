@@ -1,0 +1,11 @@
+services:
+  # Frontend Static Site
+  - type: web
+    name: finsight-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

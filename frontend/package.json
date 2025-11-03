@@ -5,6 +5,7 @@
   "private": true,
   "dependencies": {
     "axios": "^1.6.2",
+    "express": "^4.18.2",
     "framer-motion": "^10.16.16",
     "lucide-react": "^0.294.0",
     "plotly.js": "^2.27.1",
@@ -27,6 +28,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js"
   }
 }
