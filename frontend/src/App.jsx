@@ -1,5 +1,5 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Strategies from './pages/Strategies'
@@ -18,12 +18,28 @@ import { ChatProvider } from './context/ChatContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
 
+// Component to handle 404 redirects
+function RedirectHandler() {
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    const redirectPath = sessionStorage.getItem('redirectPath')
+    if (redirectPath) {
+      sessionStorage.removeItem('redirectPath')
+      navigate(redirectPath, { replace: true })
+    }
+  }, [navigate])
+  
+  return null
+}
+
 function App() {
   return (
     <ThemeProvider>
       <Router>
         <AuthProvider>
           <ChatProvider>
+            <RedirectHandler />
             <div className="min-h-screen bg-background dark:bg-dark-bg-primary transition-colors">
               <Routes>
                 {/* Public routes - no navbar */}
