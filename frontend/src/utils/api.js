@@ -1,12 +1,20 @@
-// Axios configuration with API base URL
-import axios from 'axios';
-import { API_URL } from '../config';
+import axios from 'axios'
+import { API_URL } from '../config'
 
-// Create axios instance with base URL
+// Axios instance for backend API
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 120000, // 2 minutes for ML predictions
-});
+  timeout: 30000
+})
 
-export default api;
+// Attach JWT token if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
+export default api

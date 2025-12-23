@@ -40,7 +40,7 @@ function App() {
         <AuthProvider>
           <ChatProvider>
             <RedirectHandler />
-            <div className="min-h-screen bg-background dark:bg-dark-bg-primary transition-colors">
+            <div className="min-h-screen bg-background dark:bg-background transition-colors">
               <Routes>
                 {/* Public routes - no navbar */}
                 <Route path="/login" element={<Login />} />

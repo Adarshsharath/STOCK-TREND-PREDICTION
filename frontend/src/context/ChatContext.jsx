@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import axios from 'axios'
+import api from '../utils/api'
 
 const ChatContext = createContext()
 
@@ -23,7 +23,7 @@ export const ChatProvider = ({ children }) => {
   const loadConversations = async () => {
     setIsLoadingConversations(true)
     try {
-      const response = await axios.get('/api/conversations')
+      const response = await api.get('/api/conversations')
       setConversations(response.data.conversations || [])
     } catch (error) {
       console.error('Failed to load conversations:', error)
@@ -54,7 +54,7 @@ export const ChatProvider = ({ children }) => {
 
   const createNewConversation = async () => {
     try {
-      const response = await axios.post('/api/conversations/new')
+      const response = await api.post('/api/conversations/new')
       const newConversationId = response.data.conversation_id
       setCurrentConversationId(newConversationId)
       setMessages([])
@@ -69,7 +69,7 @@ export const ChatProvider = ({ children }) => {
 
   const loadConversation = async (conversationId) => {
     try {
-      const response = await axios.get(`/api/conversations/${conversationId}`)
+      const response = await api.get(`/api/conversations/${conversationId}`)
       const conversation = response.data
       
       setCurrentConversationId(conversationId)
@@ -88,7 +88,7 @@ export const ChatProvider = ({ children }) => {
 
   const deleteConversation = async (conversationId) => {
     try {
-      await axios.delete(`/api/conversations/${conversationId}`)
+      await api.delete(`/api/conversations/${conversationId}`)
       
       // If deleting current conversation, clear it
       if (conversationId === currentConversationId) {

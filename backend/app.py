@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_caching import Cache
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, verify_jwt_in_request
 import sys
 import os
 import numpy as np
 import pandas as pd
 from datetime import timedelta
+from dotenv import load_dotenv
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -47,15 +48,16 @@ from models.lstm_classifier_model import lstm_classifier_predict
 from models.svm_classifier_model import svm_classifier_predict
 
 # Import chatbot
-from chatbot.perplexity_bot_new import chat_with_perplexity
-from chatbot.chat_history import (
-    create_new_conversation,
-    save_message,
-    get_conversation,
-    list_conversations,
-    delete_conversation,
-    update_conversation_title
-)
+"""Chatbot imports removed; will be provided by new blueprint."""
+# Load environment variables
+load_dotenv()
+
+# MongoDB is mandatory
+from db.mongo import get_db
+get_db()
+
+# Chat history is MongoDB-only
+"""Legacy chat helpers removed; new chatbot blueprint will handle storage and routes."""
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -69,13 +71,11 @@ jwt = JWTManager(app)
 # Configure caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
-# Initialize database
-from database import init_db
-init_db()
-
 # Register auth blueprint
 from auth import auth_bp
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+from chatbot.routes import chatbot_bp
+app.register_blueprint(chatbot_bp, url_prefix='/api')
 
 def clean_nan_values(obj):
     """
@@ -95,6 +95,25 @@ def clean_nan_values(obj):
         return float(obj) if isinstance(obj, np.floating) else int(obj)
     else:
         return obj
+
+def _get_user_id():
+    """Extract user_id from header, JSON body, or query string"""
+    try:
+        verify_jwt_in_request(optional=True)
+        jwt_user = get_jwt_identity()
+        if jwt_user:
+            return str(jwt_user)
+    except Exception:
+        pass
+
+    user_id = request.headers.get('X-User-Id')
+    if not user_id:
+        try:
+            data = request.get_json(silent=True) or {}
+        except Exception:
+            data = {}
+        user_id = data.get('user_id') or request.args.get('user_id')
+    return user_id
 
 # Strategy mapping
 STRATEGIES = {
@@ -235,102 +254,7 @@ def get_prediction():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/chatbot', methods=['POST'])
-def chatbot():
-    """
-    Chat with FinSight AI
-    
-    Request Body:
-        message: User's message
-        conversation_id: Conversation ID (optional, creates new if not provided)
-        conversation_history: Previous conversation (optional)
-    """
-    try:
-        data = request.get_json()
-        
-        if not data or 'message' not in data:
-            return jsonify({'error': 'Message is required'}), 400
-        
-        user_message = data['message']
-        conversation_id = data.get('conversation_id')
-        conversation_history = data.get('conversation_history', None)
-        
-        # Create new conversation if ID not provided
-        if not conversation_id:
-            conversation_id = create_new_conversation()
-        
-        # Save user message
-        save_message(conversation_id, 'user', user_message)
-        
-        # Get response from Perplexity
-        result = chat_with_perplexity(user_message, conversation_history)
-        
-        # Save assistant response if successful
-        if not result.get('error'):
-            save_message(conversation_id, 'assistant', result['response'])
-        
-        # Add conversation_id to result
-        result['conversation_id'] = conversation_id
-        
-        return jsonify(result)
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/conversations', methods=['GET'])
-def get_conversations():
-    """Get all conversations"""
-    try:
-        conversations = list_conversations()
-        return jsonify({'conversations': conversations})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/conversations/<conversation_id>', methods=['GET'])
-def get_conversation_by_id(conversation_id):
-    """Get a specific conversation"""
-    try:
-        conversation = get_conversation(conversation_id)
-        if not conversation:
-            return jsonify({'error': 'Conversation not found'}), 404
-        return jsonify(conversation)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
-def delete_conversation_by_id(conversation_id):
-    """Delete a conversation"""
-    try:
-        success = delete_conversation(conversation_id)
-        if success:
-            return jsonify({'message': 'Conversation deleted successfully'})
-        return jsonify({'error': 'Conversation not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/conversations/<conversation_id>/title', methods=['PUT'])
-def update_conversation_title_route(conversation_id):
-    """Update conversation title"""
-    try:
-        data = request.get_json()
-        if not data or 'title' not in data:
-            return jsonify({'error': 'Title is required'}), 400
-        
-        success = update_conversation_title(conversation_id, data['title'])
-        if success:
-            return jsonify({'message': 'Title updated successfully'})
-        return jsonify({'error': 'Conversation not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/conversations/new', methods=['POST'])
-def create_conversation():
-    """Create a new conversation"""
-    try:
-        conversation_id = create_new_conversation()
-        return jsonify({'conversation_id': conversation_id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+"""Legacy chatbot routes removed; new blueprint defines all chat endpoints."""
 
 @app.route('/api/strategies', methods=['GET'])
 def list_strategies():

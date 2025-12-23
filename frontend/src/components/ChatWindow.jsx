@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Send, Loader2, Trash2, MessageCircle, Plus, History, Sparkles, X as CloseIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../context/ChatContext'
-import axios from 'axios'
+import api from '../utils/api'
 import FormattedMessage from './FormattedMessage'
 
 const ChatWindow = () => {
@@ -50,7 +50,7 @@ const ChatWindow = () => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post('/api/chatbot', {
+      const response = await api.post('/api/chatbot', {
         message: messageToSend,
         conversation_id: currentConversationId,
         conversation_history: conversationHistory

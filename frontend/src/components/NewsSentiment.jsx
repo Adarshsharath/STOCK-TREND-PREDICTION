@@ -98,7 +98,7 @@ const NewsSentiment = ({ symbol }) => {
           <Newspaper className="w-5 h-5 text-primary" />
           <div>
             <h3 className="text-lg font-semibold text-text">News Sentiment Analysis</h3>
-            <p className="text-xs text-text-light">{symbol} • Last {sentiment.period_days} days</p>
+            <p className="text-xs text-text-light">{symbol} • Last {(sentiment?.period_days ?? 7)} days</p>
           </div>
         </div>
         <button
@@ -117,12 +117,12 @@ const NewsSentiment = ({ symbol }) => {
             {getSentimentIcon()}
             <div>
               <p className="text-sm font-medium">Overall Sentiment</p>
-              <p className="text-2xl font-bold">{sentiment.sentiment_emoji} {sentiment.sentiment_label}</p>
+              <p className="text-2xl font-bold">{sentiment?.sentiment_emoji ?? '😐'} {sentiment?.sentiment_label ?? 'Neutral'}</p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm font-medium">Score</p>
-            <p className="text-2xl font-bold">{(sentiment.overall_sentiment * 100).toFixed(1)}%</p>
+            <p className="text-2xl font-bold">{(((typeof sentiment?.overall_sentiment === 'number' ? sentiment.overall_sentiment : 0) * 100)).toFixed(1)}%</p>
           </div>
         </div>
         
@@ -131,15 +131,15 @@ const NewsSentiment = ({ symbol }) => {
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs font-medium mb-1">Positive</p>
-              <p className="text-lg font-bold">{sentiment.distribution.positive}</p>
+              <p className="text-lg font-bold">{(sentiment?.distribution?.positive ?? 0)}</p>
             </div>
             <div>
               <p className="text-xs font-medium mb-1">Neutral</p>
-              <p className="text-lg font-bold">{sentiment.distribution.neutral}</p>
+              <p className="text-lg font-bold">{(sentiment?.distribution?.neutral ?? 0)}</p>
             </div>
             <div>
               <p className="text-xs font-medium mb-1">Negative</p>
-              <p className="text-lg font-bold">{sentiment.distribution.negative}</p>
+              <p className="text-lg font-bold">{(sentiment?.distribution?.negative ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -162,10 +162,10 @@ const NewsSentiment = ({ symbol }) => {
             <div className="flex-1 bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${sentiment.confidence}%` }}
+                style={{ width: `${(typeof sentiment?.confidence === 'number' ? sentiment.confidence : 0)}%` }}
               />
             </div>
-            <span className="text-sm font-semibold">{sentiment.confidence}%</span>
+            <span className="text-sm font-semibold">{(typeof sentiment?.confidence === 'number' ? sentiment.confidence : 0)}%</span>
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
@@ -174,10 +174,10 @@ const NewsSentiment = ({ symbol }) => {
             <div className="flex-1 bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-secondary h-2 rounded-full transition-all"
-                style={{ width: `${sentiment.consistency_score}%` }}
+                style={{ width: `${(typeof sentiment?.consistency_score === 'number' ? sentiment.consistency_score : 0)}%` }}
               />
             </div>
-            <span className="text-sm font-semibold">{sentiment.consistency_score}%</span>
+            <span className="text-sm font-semibold">{(typeof sentiment?.consistency_score === 'number' ? sentiment.consistency_score : 0)}%</span>
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ const NewsSentiment = ({ symbol }) => {
         onClick={() => setExpanded(!expanded)}
         className="w-full text-sm text-primary font-medium hover:underline"
       >
-        {expanded ? 'Hide' : 'Show'} {sentiment.total_articles} News Articles
+        {expanded ? 'Hide' : 'Show'} {(sentiment?.total_articles ?? (Array.isArray(sentiment?.articles) ? sentiment.articles.length : 0))} News Articles
       </button>
 
       {/* Article List */}

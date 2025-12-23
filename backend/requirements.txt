@@ -16,3 +16,4 @@ requests
 python-dotenv
 gunicorn
 textblob==0.17.1
+pymongo==4.6.1
