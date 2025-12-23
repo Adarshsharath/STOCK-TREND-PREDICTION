@@ -1,12 +1,17 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, TrendingUp, ChevronRight, Filter } from 'lucide-react'
+import { Search, TrendingUp, ChevronRight, Filter, HelpCircle, Lightbulb } from 'lucide-react'
 import { strategiesData } from '../data/strategiesData'
+import { useAuth } from '../context/AuthContext'
 
 const Strategies = () => {
   const navigate = useNavigate()
+  const { experienceLevel } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showBeginnerGuide, setShowBeginnerGuide] = useState(true)
+
+  const isBeginner = experienceLevel === 'beginner'
 
   // Get unique categories
   const categories = ['all', ...new Set(strategiesData.map(s => s.category))]
@@ -33,9 +38,61 @@ const Strategies = () => {
         </div>
         <h1 className="text-4xl font-bold mb-2">Trading Strategies</h1>
         <p className="text-white text-opacity-90 text-lg">
-          Analyze stocks with 10 powerful trading strategies. Each with multiple sub-strategies and timeframes.
+          {isBeginner ? (
+            <>Discover trading strategies that help you make informed decisions. Each strategy uses different market signals to identify buying and selling opportunities.</>
+          ) : (
+            <>Analyze stocks with 10 powerful trading strategies. Each with multiple sub-strategies and timeframes.</>
+          )}
         </p>
       </div>
+
+      {/* Beginner Guide */}
+      {isBeginner && showBeginnerGuide && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
+              <div className="bg-blue-500 p-3 rounded-xl text-white flex-shrink-0">
+                <Lightbulb className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-text dark:text-dark-text mb-2">📚 New to Trading Strategies?</h3>
+                <p className="text-sm text-text-light dark:text-dark-text-secondary mb-3">
+                  Trading strategies are systematic methods used to decide when to buy or sell stocks. Think of them as rules based on market data (like price and volume) that help remove emotion from trading decisions.
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">•</span>
+                    <span className="text-text-light dark:text-dark-text-secondary">
+                      <strong className="text-text dark:text-dark-text">Trend Following:</strong> Strategies like EMA and MACD help you follow market momentum
+                    </span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-purple-600 dark:text-purple-400 font-bold">•</span>
+                    <span className="text-text-light dark:text-dark-text-secondary">
+                      <strong className="text-text dark:text-dark-text">Mean Reversion:</strong> Strategies like RSI and Bollinger Bands find oversold/overbought conditions
+                    </span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600 dark:text-green-400 font-bold">•</span>
+                    <span className="text-text-light dark:text-dark-text-secondary">
+                      <strong className="text-text dark:text-dark-text">Volatility-Based:</strong> Strategies like SuperTrend adapt to market volatility
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-text-muted dark:text-dark-text-muted mt-3">
+                  💡 Tip: Start with simpler strategies like EMA Crossover or RSI before moving to complex ones like Ichimoku Cloud.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowBeginnerGuide(false)}
+              className="text-text-muted dark:text-dark-text-muted hover:text-text dark:hover:text-dark-text text-sm flex-shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="bg-white dark:bg-dark-bg-secondary rounded-xl p-6 shadow-card dark:shadow-dark-card">

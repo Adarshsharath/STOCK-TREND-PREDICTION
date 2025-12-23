@@ -113,14 +113,20 @@ def logistic_regression_predict(df):
         X = data[feature_cols].astype(np.float64).values
         y = data['target'].astype(np.int32).values
         
-        # Split data (80-20)
+        # Chronological split (80-20)
         train_size = int(len(X) * 0.8)
-        X_train, X_test = X[:train_size], X[train_size:]
-        y_train, y_test = y[:train_size], y[train_size:]
+        X_train_full, X_test = X[:train_size], X[train_size:]
+        y_train_full, y_test = y[:train_size], y[train_size:]
+
+        # Create validation from the tail of training (time-aware)
+        val_size = max(int(len(X_train_full) * 0.2), 50) if len(X_train_full) > 200 else max(int(len(X_train_full) * 0.2), 20)
+        X_train, X_val = X_train_full[:-val_size], X_train_full[-val_size:]
+        y_train, y_val = y_train_full[:-val_size], y_train_full[-val_size:]
         
         # Standardize features
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
         X_test_scaled = scaler.transform(X_test)
         
         # Train Logistic Regression model
@@ -134,9 +140,20 @@ def logistic_regression_predict(df):
         
         model.fit(X_train_scaled, y_train)
         
-        # Make predictions
-        predictions = model.predict(X_test_scaled)
+        # Tune threshold on validation to maximize accuracy
+        val_probs = model.predict_proba(X_val_scaled)[:, 1]
+        best_thr = 0.5
+        best_val_acc = -1.0
+        for thr in np.linspace(0.35, 0.65, 31):
+            preds = (val_probs >= thr).astype(int)
+            acc = (preds == y_val).mean()
+            if acc > best_val_acc:
+                best_val_acc = acc
+                best_thr = thr
+
+        # Make predictions on test using tuned threshold
         probabilities = model.predict_proba(X_test_scaled)[:, 1]  # Probability of up move
+        predictions = (probabilities >= best_thr).astype(int)
         
         # Calculate metrics
         accuracy = accuracy_score(y_test, predictions) * 100
@@ -189,7 +206,9 @@ def logistic_regression_predict(df):
                 'precision': float(precision * 100),
                 'recall': float(recall * 100),
                 'f1_score': float(f1_score * 100),
-                'confusion_matrix': cm.tolist()
+                'confusion_matrix': cm.tolist(),
+                'validation_accuracy': float(best_val_acc * 100),
+                'threshold': float(best_thr)
             },
             'feature_importance': {k: float(v) for k, v in top_features.items()},
             'metadata': {

@@ -53,7 +53,7 @@ def fetch_market_valuation(symbol):
             'description': info.get('longBusinessSummary', None),
             'employees': info.get('fullTimeEmployees', None),
             'exchange': info.get('exchange', None),
-            'currency': info.get('currency', 'USD'),
+            'currency': info.get('currency', 'INR'),
             'timestamp': datetime.now().isoformat(),
             'status': 'success'
         }

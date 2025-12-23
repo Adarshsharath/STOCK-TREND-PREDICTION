@@ -4,7 +4,7 @@ import pandas as pd
 def calculate_signal_confidence(df, buy_signals, sell_signals, strategy_type='technical'):
     """
     Calculate confidence scores for buy/sell signals based on multiple factors
-    
+
     Args:
         df: DataFrame with stock data and indicators
         buy_signals: List of buy signal dictionaries
@@ -14,6 +14,8 @@ def calculate_signal_confidence(df, buy_signals, sell_signals, strategy_type='te
     Returns:
         Updated buy_signals and sell_signals with confidence scores
     """
+    # Ensure positional indexing is safe for downstream iloc
+    df = df.reset_index(drop=True).copy()
     
     # Add confidence to buy signals
     for signal in buy_signals:
@@ -21,8 +23,19 @@ def calculate_signal_confidence(df, buy_signals, sell_signals, strategy_type='te
         signal_row = df[df['date'] == signal_date]
         
         if not signal_row.empty:
+            # Convert DataFrame index label to integer position for iloc-safe access
+            idx_label = signal_row.index[0]
+            try:
+                if isinstance(idx_label, (int, np.integer)):
+                    idx_pos = int(idx_label)
+                else:
+                    idx_pos = int(df.index.get_indexer([idx_label])[0])
+            except Exception:
+                # Fallback to first matching position
+                idx_pos = int(signal_row.reset_index().index[0])
+
             confidence = calculate_single_signal_confidence(
-                df, signal_row.index[0], 'buy', strategy_type
+                df, idx_pos, 'buy', strategy_type
             )
             signal['confidence'] = confidence['score']
             signal['confidence_label'] = confidence['label']
@@ -35,8 +48,17 @@ def calculate_signal_confidence(df, buy_signals, sell_signals, strategy_type='te
         signal_row = df[df['date'] == signal_date]
         
         if not signal_row.empty:
+            idx_label = signal_row.index[0]
+            try:
+                if isinstance(idx_label, (int, np.integer)):
+                    idx_pos = int(idx_label)
+                else:
+                    idx_pos = int(df.index.get_indexer([idx_label])[0])
+            except Exception:
+                idx_pos = int(signal_row.reset_index().index[0])
+
             confidence = calculate_single_signal_confidence(
-                df, signal_row.index[0], 'sell', strategy_type
+                df, idx_pos, 'sell', strategy_type
             )
             signal['confidence'] = confidence['score']
             signal['confidence_label'] = confidence['label']
@@ -49,11 +71,26 @@ def calculate_single_signal_confidence(df, idx, signal_type, strategy_type):
     """
     Calculate confidence for a single signal based on multiple factors
     """
+    # Ensure idx is an integer positional index
+    try:
+        if isinstance(idx, (list, tuple, np.ndarray, pd.Series)):
+            idx = int(idx[0])
+        else:
+            idx = int(idx)
+    except Exception:
+        idx = 0
+
+    # Bound-check idx
+    if idx < 0:
+        idx = 0
+    if idx >= len(df):
+        idx = len(df) - 1 if len(df) > 0 else 0
+
     factors = {}
     scores = []
     
     # Factor 1: Volume confirmation (30% weight)
-    if 'volume' in df.columns:
+    if 'volume' in df.columns and len(df) > 0:
         avg_volume = df['volume'].rolling(window=20).mean().iloc[idx]
         current_volume = df['volume'].iloc[idx]
         if pd.notna(avg_volume) and avg_volume > 0:
@@ -63,9 +100,14 @@ def calculate_single_signal_confidence(df, idx, signal_type, strategy_type):
             scores.append(volume_score * 0.3)
     
     # Factor 2: Price momentum (25% weight)
-    if 'close' in df.columns and len(df) > idx + 5:
-        price_change_5d = ((df['close'].iloc[idx] - df['close'].iloc[max(0, idx-5)]) / 
-                           df['close'].iloc[max(0, idx-5)] * 100)
+    if 'close' in df.columns and len(df) > 0:
+        base_idx = max(0, idx-5)
+        denom = df['close'].iloc[base_idx] if df['close'].iloc[base_idx] != 0 else np.nan
+        price_change_5d = np.nan
+        try:
+            price_change_5d = ((df['close'].iloc[idx] - df['close'].iloc[base_idx]) / denom * 100) if pd.notna(denom) else 0
+        except Exception:
+            price_change_5d = 0
         
         if signal_type == 'buy':
             momentum_score = max(0, min(100, 50 + price_change_5d * 10))
@@ -76,7 +118,7 @@ def calculate_single_signal_confidence(df, idx, signal_type, strategy_type):
         scores.append(momentum_score * 0.25)
     
     # Factor 3: Volatility (20% weight)
-    if 'close' in df.columns:
+    if 'close' in df.columns and len(df) > 0:
         volatility = df['close'].rolling(window=10).std().iloc[idx]
         avg_volatility = df['close'].rolling(window=20).std().mean()
         if pd.notna(volatility) and pd.notna(avg_volatility) and avg_volatility > 0:

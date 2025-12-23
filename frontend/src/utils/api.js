@@ -8,5 +8,17 @@ const api = axios.create({
   timeout: 120000, // 2 minutes for ML predictions
 });
 
+// Attach Authorization header if token exists
+api.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (_) {}
+  return config;
+});
+
 export default api;
 

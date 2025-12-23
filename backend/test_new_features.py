@@ -70,7 +70,7 @@ try:
                 if first_signal:
                     print(f"   Sample Buy Signal:")
                     print(f"   - Date: {first_signal.get('date')}")
-                    print(f"   - Price: ${first_signal.get('close', 0):.2f}")
+                    print(f"   - Price: ₹{first_signal.get('close', 0):.2f}")
                     print(f"   - Confidence: {first_signal.get('confidence', 0):.1f}%")
                     print(f"   - Strength: {first_signal.get('confidence_label', 'N/A')}")
                     if first_signal.get('factors'):

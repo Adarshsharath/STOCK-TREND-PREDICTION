@@ -107,7 +107,7 @@ const NotificationBell = ({ notifications, onClearAll, onRemove, onSelectNotific
                               {notification.strategyName} • {notification.symbol}
                             </p>
                             <p className="text-sm font-semibold text-gray-800 dark:text-dark-text mt-1">
-                              ${notification.price.toFixed(2)}
+                              ₹{notification.price.toFixed(2)}
                             </p>
                             {notification.date && (
                               <p className="text-xs text-gray-400 dark:text-dark-text-muted mt-1">

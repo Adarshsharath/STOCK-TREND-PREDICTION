@@ -23,7 +23,28 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            experience_level TEXT DEFAULT 'beginner',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Add experience_level column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN experience_level TEXT DEFAULT "beginner"')
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
+    
+    # Create favorites table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            symbol TEXT NOT NULL,
+            display_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, symbol),
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
     
@@ -64,7 +85,8 @@ def create_user(username, email, password):
             'user': {
                 'id': user_id,
                 'username': username,
-                'email': email
+                'email': email,
+                'experience_level': 'beginner'
             }
         }
     
@@ -107,7 +129,8 @@ def verify_user(username, password):
             return {
                 'id': user['id'],
                 'username': user['username'],
-                'email': user['email']
+                'email': user['email'],
+                'experience_level': user.get('experience_level', 'beginner')
             }
         
         return None
@@ -122,7 +145,7 @@ def get_user_by_id(user_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT id, username, email FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT id, username, email, experience_level FROM users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         conn.close()
         
@@ -130,7 +153,8 @@ def get_user_by_id(user_id):
             return {
                 'id': user['id'],
                 'username': user['username'],
-                'email': user['email']
+                'email': user['email'],
+                'experience_level': user.get('experience_level', 'beginner')
             }
         
         return None
@@ -138,6 +162,64 @@ def get_user_by_id(user_id):
     except Exception as e:
         print(f"Error getting user: {e}")
         return None
+
+def add_favorite(user_id, symbol, display_name=None):
+    """Add a favorite symbol for a user"""
+    try:
+        symbol = (symbol or '').strip().upper()
+        if not symbol:
+            return {'success': False, 'error': 'Symbol is required'}
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT OR IGNORE INTO favorites (user_id, symbol, display_name) VALUES (?, ?, ?)',
+            (user_id, symbol, display_name)
+        )
+        conn.commit()
+        conn.close()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def remove_favorite(user_id, symbol):
+    """Remove a favorite symbol for a user"""
+    try:
+        symbol = (symbol or '').strip().upper()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'DELETE FROM favorites WHERE user_id = ? AND symbol = ?',
+            (user_id, symbol)
+        )
+        conn.commit()
+        changes = cursor.rowcount
+        conn.close()
+        if changes == 0:
+            return {'success': False, 'error': 'Favorite not found'}
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def list_favorites(user_id):
+    """List favorites for a user"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT symbol, COALESCE(display_name, symbol) as display_name, created_at FROM favorites WHERE user_id = ? ORDER BY created_at DESC',
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            {
+                'symbol': row['symbol'],
+                'display_name': row['display_name'],
+                'created_at': row['created_at']
+            } for row in rows
+        ]
+    except Exception as e:
+        return {'error': str(e)}
 
 # Initialize database when module is imported
 if __name__ == '__main__':

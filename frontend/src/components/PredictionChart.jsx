@@ -78,11 +78,11 @@ const PredictionChart = ({ predictions, actual, dates, modelName, metrics }) => 
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-card">
             <p className="text-xs text-text-muted uppercase tracking-wide mb-1">MAE</p>
-            <p className="text-2xl font-bold text-primary">${metrics.mae?.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-primary">₹{metrics.mae?.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-card">
             <p className="text-xs text-text-muted uppercase tracking-wide mb-1">RMSE</p>
-            <p className="text-2xl font-bold text-primary">${metrics.rmse?.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-primary">₹{metrics.rmse?.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-card">
             <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Directional Accuracy</p>

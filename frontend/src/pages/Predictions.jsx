@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Brain, Loader2, Search, ArrowLeft } from 'lucide-react'
+import { Brain, Loader2, Search, ArrowLeft, Lightbulb, HelpCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../utils/api'
 import PredictionChart from '../components/PredictionChart'
@@ -10,6 +10,7 @@ import MarketSentimentPanel from '../components/MarketSentimentPanel'
 import VolatilityPredictor from '../components/VolatilityPredictor'
 import ExplainabilityPanel from '../components/ExplainabilityPanel'
 import ClassificationResult from '../components/ClassificationResult'
+import { useAuth } from '../context/AuthContext'
 
 const MODELS = [
   // Regression Models (Price Prediction)
@@ -150,6 +151,7 @@ const MODELS = [
 const Predictions = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { experienceLevel } = useAuth()
   const fromFinance = location.state?.fromFinance || sessionStorage.getItem('returnToFinance') === 'true'
   
   const [selectedModel, setSelectedModel] = useState(null)
@@ -161,6 +163,9 @@ const Predictions = () => {
   const [sentimentVolatility, setSentimentVolatility] = useState(null)
   const [svLoading, setSvLoading] = useState(false)
   const [showAnalyze, setShowAnalyze] = useState(false)
+  const [showBeginnerGuide, setShowBeginnerGuide] = useState(true)
+
+  const isBeginner = experienceLevel === 'beginner'
 
   const fetchSentimentVolatility = async (stockSymbol) => {
     setSvLoading(true)
