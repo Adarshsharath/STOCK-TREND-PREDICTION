@@ -130,13 +130,13 @@ const ExplainabilityPanel = ({ reasoning }) => {
             {metadata.current_price && (
               <div>
                 <p className="text-xs text-text-muted">Current Price</p>
-                <p className="text-sm font-bold text-text">${metadata.current_price.toFixed(2)}</p>
+                <p className="text-sm font-bold text-text">₹{metadata.current_price.toFixed(2)}</p>
               </div>
             )}
             {metadata.predicted_price && (
               <div>
                 <p className="text-xs text-text-muted">Predicted Price</p>
-                <p className="text-sm font-bold text-primary">${metadata.predicted_price.toFixed(2)}</p>
+                <p className="text-sm font-bold text-primary">₹{metadata.predicted_price.toFixed(2)}</p>
               </div>
             )}
             {metadata.directional_accuracy !== undefined && (

@@ -1,20 +1,27 @@
-import axios from 'axios'
-import { API_URL } from '../config'
+import axios from "axios";
+import { API_URL } from "../config";
 
-// Axios instance for backend API
+// Create Axios instance for backend API
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000
-})
+  timeout: 30000,
+});
 
-// Attach JWT token if present
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers = config.headers || {}
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Attach Authorization header with JWT token (if available)
+api.interceptors.request.use(
+  (config) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      // Ignore storage errors
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-export default api
+export default api;

@@ -104,7 +104,7 @@ def generate_prediction_reasoning(df, predictions, actual, metrics, model_name):
         if volatility > current_price * 0.02:
             factors.append({
                 'title': 'Market Volatility',
-                'description': f'Higher volatility detected (${volatility:.2f}), prediction range may be wider',
+                'description': f'Higher volatility detected (₹{volatility:.2f}), prediction range may be wider',
                 'impact': 'medium',
                 'icon': '⚠️'
             })

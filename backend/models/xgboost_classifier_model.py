@@ -132,37 +132,72 @@ def xgboost_classifier_predict(df):
         X = data[feature_cols].astype(np.float64).values
         y = data['target'].astype(np.int32).values
         
-        # Split data (80-20)
+        # Chronological split (80-20)
         train_size = int(len(X) * 0.8)
-        X_train, X_test = X[:train_size], X[train_size:]
-        y_train, y_test = y[:train_size], y[train_size:]
+        X_train_full, X_test = X[:train_size], X[train_size:]
+        y_train_full, y_test = y[:train_size], y[train_size:]
+
+        # Create validation from the tail of training (time-aware)
+        val_size = max(int(len(X_train_full) * 0.2), 50) if len(X_train_full) > 200 else max(int(len(X_train_full) * 0.2), 20)
+        X_train, X_val = X_train_full[:-val_size], X_train_full[-val_size:]
+        y_train, y_val = y_train_full[:-val_size], y_train_full[-val_size:]
         
         # Calculate scale_pos_weight for imbalanced data
-        scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
+        pos = max((y_train == 1).sum(), 1)
+        neg = max((y_train == 0).sum(), 1)
+        scale_pos_weight = neg / pos
+
+        # Lightweight hyperparameter sweep with early stopping
+        param_options = [
+            dict(n_estimators=600, max_depth=5, learning_rate=0.05, subsample=0.9, colsample_bytree=0.8, min_child_weight=2, gamma=0),
+            dict(n_estimators=800, max_depth=6, learning_rate=0.035, subsample=0.85, colsample_bytree=0.8, min_child_weight=3, gamma=0),
+            dict(n_estimators=500, max_depth=4, learning_rate=0.06, subsample=0.9, colsample_bytree=0.9, min_child_weight=1, gamma=0),
+        ]
+
+        best_model = None
+        best_val_acc = -1.0
+        best_params = None
+
+        for params in param_options:
+            model = xgb.XGBClassifier(
+                objective='binary:logistic',
+                random_state=42,
+                n_jobs=-1,
+                eval_metric='logloss',
+                scale_pos_weight=scale_pos_weight,
+                **params,
+            )
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                early_stopping_rounds=50,
+                verbose=False,
+            )
+            # Evaluate on validation (temporary threshold 0.5)
+            val_probs_tmp = model.predict_proba(X_val)[:, 1]
+            val_preds_tmp = (val_probs_tmp >= 0.5).astype(int)
+            val_acc = (val_preds_tmp == y_val).mean()
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                best_model = model
+                best_params = params
+
+        model = best_model
         
-        # Train XGBoost Classifier
-        model = xgb.XGBClassifier(
-            n_estimators=200,
-            max_depth=7,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            gamma=1,
-            min_child_weight=3,
-            scale_pos_weight=scale_pos_weight,
-            objective='binary:logistic',
-            random_state=42,
-            n_jobs=-1,
-            eval_metric='logloss'
-        )
-        
-        model.fit(X_train, y_train, 
-                 eval_set=[(X_test, y_test)],
-                 verbose=False)
-        
-        # Make predictions
-        predictions = model.predict(X_test)
+        # Tune threshold on validation to maximize accuracy
+        val_probs = model.predict_proba(X_val)[:, 1]
+        best_thr = 0.5
+        best_thr_acc = -1.0
+        for thr in np.linspace(0.35, 0.65, 31):
+            preds = (val_probs >= thr).astype(int)
+            acc = (preds == y_val).mean()
+            if acc > best_thr_acc:
+                best_thr_acc = acc
+                best_thr = thr
+
+        # Predict on test using tuned threshold
         probabilities = model.predict_proba(X_test)[:, 1]
+        predictions = (probabilities >= best_thr).astype(int)
         
         # Calculate metrics
         accuracy = accuracy_score(y_test, predictions) * 100
@@ -213,7 +248,9 @@ def xgboost_classifier_predict(df):
                 'precision': float(precision * 100),
                 'recall': float(recall * 100),
                 'f1_score': float(f1_score * 100),
-                'confusion_matrix': cm.tolist()
+                'confusion_matrix': cm.tolist(),
+                'validation_accuracy': float(best_val_acc * 100),
+                'threshold': float(best_thr)
             },
             'feature_importance': {k: float(v) for k, v in top_features.items()},
             'metadata': {
@@ -221,9 +258,8 @@ def xgboost_classifier_predict(df):
                 'description': 'Powerful ensemble model that captures nonlinear relationships between indicators. Excellent for complex patterns.',
                 'type': 'classification',
                 'parameters': {
-                    'n_estimators': 200,
-                    'max_depth': 7,
-                    'learning_rate': 0.05
+                    **{k: (int(v) if isinstance(v, (int, np.integer)) else float(v) if isinstance(v, (float, np.floating)) else v) for k, v in (best_params or {}).items()},
+                    'scale_pos_weight': float(scale_pos_weight)
                 }
             },
             'next_day_prediction': {

@@ -20,13 +20,35 @@ const LiveSimulator = () => {
   const notificationIdRef = useRef(0)
 
   const SUGGESTED_STOCKS = [
+    // US Tech Giants
     { symbol: 'AAPL', name: 'Apple Inc.' },
     { symbol: 'MSFT', name: 'Microsoft' },
     { symbol: 'GOOGL', name: 'Google' },
+    { symbol: 'AMZN', name: 'Amazon' },
+    { symbol: 'NVDA', name: 'NVIDIA' },
     { symbol: 'TSLA', name: 'Tesla' },
+    { symbol: 'META', name: 'Meta (Facebook)' },
+    { symbol: 'NFLX', name: 'Netflix' },
+    
+    // Indian Large Caps
     { symbol: 'RELIANCE.NS', name: 'Reliance Industries' },
-    { symbol: 'TCS.NS', name: 'TCS' },
-    { symbol: 'INFY.NS', name: 'Infosys' }
+    { symbol: 'TCS.NS', name: 'Tata Consultancy Services' },
+    { symbol: 'INFY.NS', name: 'Infosys' },
+    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank' },
+    { symbol: 'ICICIBANK.NS', name: 'ICICI Bank' },
+    { symbol: 'WIPRO.NS', name: 'Wipro' },
+    { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel' },
+    { symbol: 'ITC.NS', name: 'ITC Limited' },
+    
+    // More US Stocks
+    { symbol: 'AMD', name: 'AMD' },
+    { symbol: 'INTC', name: 'Intel' },
+    { symbol: 'JPM', name: 'JP Morgan' },
+    { symbol: 'V', name: 'Visa' },
+    { symbol: 'MA', name: 'Mastercard' },
+    { symbol: 'WMT', name: 'Walmart' },
+    { symbol: 'DIS', name: 'Disney' },
+    { symbol: 'BA', name: 'Boeing' }
   ]
 
   const STRATEGIES = [

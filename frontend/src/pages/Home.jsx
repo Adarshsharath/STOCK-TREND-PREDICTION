@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, Brain, LineChart, ArrowRight, Activity, User, ChevronDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import LiveSimulatorCompact from '../components/LiveSimulatorCompact'
 
 const Home = () => {
   const { isAuthenticated, user } = useAuth()
@@ -93,13 +92,6 @@ const Home = () => {
               )}
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Live Simulator Section */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-6">
-          <LiveSimulatorCompact />
         </div>
       </section>
 

@@ -3,6 +3,8 @@ import os
 from datetime import datetime, timedelta
 from textblob import TextBlob
 from dotenv import load_dotenv
+import feedparser
+import re
 
 load_dotenv()
 
@@ -34,9 +36,71 @@ def classify_sentiment(score):
     else:
         return {'label': 'Very Negative', 'color': 'red', 'emoji': '🔴'}
 
+def fetch_stock_market_news_rss():
+    """
+    Fetch general stock market news from RSS feeds (no API key required)
+    
+    Returns:
+        list of news articles
+    """
+    news_articles = []
+    
+    # RSS feeds for stock market news (free, no API key required)
+    rss_feeds = [
+        {
+            'url': 'https://finance.yahoo.com/rss/',
+            'source': 'Yahoo Finance'
+        },
+        {
+            'url': 'https://feeds.finance.yahoo.com/rss/2.0/headline',
+            'source': 'Yahoo Finance Headlines'
+        },
+        {
+            'url': 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+            'source': 'CNBC Markets'
+        },
+        {
+            'url': 'https://www.investing.com/rss/news.rss',
+            'source': 'Investing.com'
+        },
+        {
+            'url': 'https://www.marketwatch.com/rss/topstories',
+            'source': 'MarketWatch'
+        }
+    ]
+    
+    for feed_info in rss_feeds:
+        try:
+            feed = feedparser.parse(feed_info['url'])
+            
+            for entry in feed.entries[:5]:  # Get top 5 from each source
+                title = entry.get('title', '')
+                description = entry.get('summary', '') or entry.get('description', '')
+                link = entry.get('link', '')
+                published = entry.get('published', '')
+                
+                # Clean HTML tags from description
+                description = re.sub(r'<[^>]+>', '', description)
+                
+                if title and title != '[Removed]':
+                    news_articles.append({
+                        'title': title,
+                        'description': description[:300] if description else '',  # Limit length
+                        'url': link,
+                        'source': feed_info['source'],
+                        'published_at': published,
+                        'image': ''
+                    })
+        except Exception as e:
+            print(f"Error fetching from {feed_info['source']}: {str(e)}")
+            continue
+    
+    return news_articles
+
 def fetch_news_sentiment(symbol, days=7, page_size=10):
     """
     Fetch financial news and perform sentiment analysis
+    First tries RSS feeds (free), then falls back to NewsAPI if configured
     
     Args:
         symbol: Stock ticker symbol
@@ -46,52 +110,39 @@ def fetch_news_sentiment(symbol, days=7, page_size=10):
     Returns:
         dict with news articles and sentiment analysis
     """
-    if not NEWSAPI_KEY:
-        return {
-            'articles': [],
-            'overall_sentiment': 0,
-            'sentiment_label': 'Neutral',
-            'message': 'NewsAPI key not configured. Sign up at https://newsapi.org/',
-            'disclaimer': 'Configure NEWSAPI_KEY in .env to enable news sentiment analysis.'
-        }
-    
+    # Try RSS feeds first (free, no API key required)
     try:
-        # Calculate date range
-        to_date = datetime.now()
-        from_date = to_date - timedelta(days=days)
+        print(f"Fetching stock market news from RSS feeds for {symbol}...")
+        articles = fetch_stock_market_news_rss()
         
-        # Build search query
-        query = f"{symbol} OR stock OR shares"
+        if not articles:
+            raise Exception("No articles from RSS feeds")
         
-        # Fetch news from NewsAPI
-        url = 'https://newsapi.org/v2/everything'
-        params = {
-            'q': query,
-            'from': from_date.strftime('%Y-%m-%d'),
-            'to': to_date.strftime('%Y-%m-%d'),
-            'language': 'en',
-            'sortBy': 'relevancy',
-            'pageSize': page_size,
-            'apiKey': NEWSAPI_KEY
-        }
+        # Filter articles relevant to the symbol or general market news
+        symbol_clean = symbol.replace('.NS', '').replace('.BO', '').upper()
         
-        response = requests.get(url, params=params, timeout=10)
+        # Keep all market news, prioritize symbol-specific ones
+        relevant_articles = []
+        other_articles = []
         
-        if response.status_code != 200:
-            return {
-                'error': f'NewsAPI error: {response.status_code}',
-                'articles': [],
-                'overall_sentiment': 0
-            }
+        for article in articles:
+            title_upper = article['title'].upper()
+            desc_upper = (article['description'] or '').upper()
+            
+            # Check if symbol is mentioned
+            if symbol_clean in title_upper or symbol_clean in desc_upper:
+                relevant_articles.append(article)
+            else:
+                other_articles.append(article)
         
-        data = response.json()
-        articles = data.get('articles', [])
+        # Combine: symbol-specific first, then general market news
+        all_articles = (relevant_articles + other_articles)[:page_size]
         
         # Analyze sentiment for each article
         analyzed_articles = []
         sentiment_scores = []
         
-        for article in articles:
+        for article in all_articles:
             title = article.get('title', '')
             description = article.get('description', '')
             
@@ -109,14 +160,17 @@ def fetch_news_sentiment(symbol, days=7, page_size=10):
                 'title': title,
                 'description': description,
                 'url': article.get('url', ''),
-                'source': article.get('source', {}).get('name', 'Unknown'),
-                'published_at': article.get('publishedAt', ''),
-                'image': article.get('urlToImage', ''),
+                'source': article.get('source', 'Unknown'),
+                'published_at': article.get('published_at', ''),
+                'image': article.get('image', ''),
                 'sentiment_score': round(sentiment_score, 3),
                 'sentiment_label': sentiment['label'],
                 'sentiment_color': sentiment['color'],
                 'sentiment_emoji': sentiment['emoji']
             })
+        
+        if not analyzed_articles:
+            raise Exception("No articles could be analyzed")
         
         # Calculate overall sentiment
         overall_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
@@ -132,9 +186,12 @@ def fetch_news_sentiment(symbol, days=7, page_size=10):
         sentiment_variance = sum((s - overall_sentiment) ** 2 for s in sentiment_scores) / len(sentiment_scores) if sentiment_scores else 1
         consistency_score = max(0, 100 - (sentiment_variance * 100))
         
+        symbol_specific_count = len(relevant_articles)
+        
         return {
             'articles': analyzed_articles,
             'total_articles': len(analyzed_articles),
+            'symbol_specific_articles': symbol_specific_count,
             'overall_sentiment': round(overall_sentiment, 3),
             'sentiment_label': overall_classification['label'],
             'sentiment_color': overall_classification['color'],
@@ -148,16 +205,129 @@ def fetch_news_sentiment(symbol, days=7, page_size=10):
             'consistency_score': round(consistency_score, 1),
             'recommendation': get_sentiment_recommendation(overall_sentiment, consistency_score),
             'timestamp': datetime.now().isoformat(),
-            'period_days': days
+            'period_days': days,
+            'data_source': 'RSS Feeds (Yahoo Finance, CNBC, MarketWatch, Investing.com)',
+            'note': f'Showing {symbol_specific_count} {symbol}-specific and {len(analyzed_articles) - symbol_specific_count} general market news articles'
         }
         
-    except Exception as e:
-        return {
-            'error': str(e),
-            'articles': [],
-            'overall_sentiment': 0,
-            'message': 'Unable to fetch news sentiment'
-        }
+    except Exception as rss_error:
+        print(f"RSS feed error: {str(rss_error)}")
+        
+        # Fallback to NewsAPI if configured
+        if not NEWSAPI_KEY:
+            return {
+                'articles': [],
+                'overall_sentiment': 0,
+                'sentiment_label': 'Neutral',
+                'message': 'Unable to fetch news at the moment. RSS feeds may be temporarily unavailable.',
+                'disclaimer': 'News sentiment analysis uses free RSS feeds from major financial news sources.'
+            }
+        
+        # Original NewsAPI implementation as fallback
+        try:
+            # Calculate date range
+            to_date = datetime.now()
+            from_date = to_date - timedelta(days=days)
+            
+            # Build search query
+            query = f"{symbol} OR stock OR shares"
+            
+            # Fetch news from NewsAPI
+            url = 'https://newsapi.org/v2/everything'
+            params = {
+                'q': query,
+                'from': from_date.strftime('%Y-%m-%d'),
+                'to': to_date.strftime('%Y-%m-%d'),
+                'language': 'en',
+                'sortBy': 'relevancy',
+                'pageSize': page_size,
+                'apiKey': NEWSAPI_KEY
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code != 200:
+                return {
+                    'error': f'NewsAPI error: {response.status_code}',
+                    'articles': [],
+                    'overall_sentiment': 0
+                }
+            
+            data = response.json()
+            articles = data.get('articles', [])
+            
+            # Analyze sentiment for each article
+            analyzed_articles = []
+            sentiment_scores = []
+            
+            for article in articles:
+                title = article.get('title', '')
+                description = article.get('description', '')
+                
+                # Combine title and description for sentiment analysis
+                text = f"{title}. {description}" if description else title
+                
+                if not text or text == '[Removed]':
+                    continue
+                
+                sentiment_score = get_sentiment_score(text)
+                sentiment = classify_sentiment(sentiment_score)
+                sentiment_scores.append(sentiment_score)
+                
+                analyzed_articles.append({
+                    'title': title,
+                    'description': description,
+                    'url': article.get('url', ''),
+                    'source': article.get('source', {}).get('name', 'Unknown'),
+                    'published_at': article.get('publishedAt', ''),
+                    'image': article.get('urlToImage', ''),
+                    'sentiment_score': round(sentiment_score, 3),
+                    'sentiment_label': sentiment['label'],
+                    'sentiment_color': sentiment['color'],
+                    'sentiment_emoji': sentiment['emoji']
+                })
+            
+            # Calculate overall sentiment
+            overall_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
+            overall_classification = classify_sentiment(overall_sentiment)
+            
+            # Calculate sentiment distribution
+            positive_count = sum(1 for s in sentiment_scores if s > 0.1)
+            negative_count = sum(1 for s in sentiment_scores if s < -0.1)
+            neutral_count = len(sentiment_scores) - positive_count - negative_count
+            
+            # Calculate confidence (based on article count and sentiment consistency)
+            confidence = min(100, (len(analyzed_articles) / page_size) * 100)
+            sentiment_variance = sum((s - overall_sentiment) ** 2 for s in sentiment_scores) / len(sentiment_scores) if sentiment_scores else 1
+            consistency_score = max(0, 100 - (sentiment_variance * 100))
+            
+            return {
+                'articles': analyzed_articles,
+                'total_articles': len(analyzed_articles),
+                'overall_sentiment': round(overall_sentiment, 3),
+                'sentiment_label': overall_classification['label'],
+                'sentiment_color': overall_classification['color'],
+                'sentiment_emoji': overall_classification['emoji'],
+                'distribution': {
+                    'positive': positive_count,
+                    'negative': negative_count,
+                    'neutral': neutral_count
+                },
+                'confidence': round(confidence, 1),
+                'consistency_score': round(consistency_score, 1),
+                'recommendation': get_sentiment_recommendation(overall_sentiment, consistency_score),
+                'timestamp': datetime.now().isoformat(),
+                'period_days': days,
+                'data_source': 'NewsAPI'
+            }
+            
+        except Exception as e:
+            return {
+                'error': str(e),
+                'articles': [],
+                'overall_sentiment': 0,
+                'message': 'Unable to fetch news sentiment'
+            }
 
 def get_sentiment_recommendation(sentiment, consistency):
     """

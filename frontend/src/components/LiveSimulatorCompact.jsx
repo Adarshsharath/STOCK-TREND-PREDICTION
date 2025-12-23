@@ -164,7 +164,7 @@ const LiveSimulatorCompact = () => {
               showBrowserNotification(signal)
             }
             
-            console.log(`[Signal] ${signalType} - ${strategyName} at $${newDataPoint.close.toFixed(2)}`)
+            console.log(`[Signal] ${signalType} - ${strategyName} at ₹${newDataPoint.close.toFixed(2)}`)
           }
           
           return nextIndex
@@ -271,7 +271,7 @@ const LiveSimulatorCompact = () => {
           {chartData.length > 0 && (
             <div className="bg-white bg-opacity-20 rounded-lg p-4">
               <p className="text-sm text-white text-opacity-75 mb-1">Current Price</p>
-              <p className="text-2xl font-bold">${currentPrice.toFixed(2)}</p>
+              <p className="text-2xl font-bold">₹{currentPrice.toFixed(2)}</p>
               <div className={`text-sm font-semibold ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
                 {isPositive ? '+' : ''}{priceChange.toFixed(2)} ({isPositive ? '+' : ''}{((priceChange / previousPrice) * 100).toFixed(2)}%)
               </div>

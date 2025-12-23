@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, IndianRupee, LogOut, User as UserIcon, Menu, X } from 'lucide-react'
+import { TrendingUp, Home, LineChart, Brain, BarChart3, Info, Moon, Sun, IndianRupee, LogOut, User as UserIcon, Menu, X, Star } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -18,8 +18,10 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/finance', label: 'Finance', icon: IndianRupee },
+    { path: '/live-strategy', label: 'Live Strategy', icon: TrendingUp },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
+    { path: '/favorites', label: 'Favorites', icon: Star },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/about', label: 'About', icon: Info }
   ]
