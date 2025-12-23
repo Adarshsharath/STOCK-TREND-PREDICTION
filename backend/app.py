@@ -42,10 +42,14 @@ from strategies.ml_lstm_strategy import ml_lstm_strategy
 
 # Import models
 from models.lstm_model import lstm_predict
+from models.lstm_multistep_model import lstm_multistep_predict
 from models.prophet_model import prophet_predict
+from models.prophet_multistep_model import prophet_multistep_predict
 from models.arima_model import arima_predict
 from models.randomforest_model import randomforest_predict
+from models.randomforest_multistep_model import randomforest_multistep_predict
 from models.xgboost_model import xgboost_predict
+from models.xgboost_multistep_model import xgboost_multistep_predict
 from models.signal_xgb_model import train_and_predict_multi_horizon
 
 # Import classifier models
@@ -135,10 +139,14 @@ STRATEGIES = {
 MODELS = {
     # Regression models (price prediction)
     'lstm': lstm_predict,
+    'lstm_multistep': lstm_multistep_predict,  # Multi-step LSTM (7-day forecast)
     'prophet': prophet_predict,
-    'arima': arima_predict,
+    'prophet_multistep': prophet_multistep_predict,  # Multi-step Prophet (7-day forecast)
+    'arima': arima_predict,  # Now supports multi-step by default
     'randomforest': randomforest_predict,
+    'randomforest_multistep': randomforest_multistep_predict,  # Multi-step Random Forest (7-day forecast)
     'xgboost': xgboost_predict,
+    'xgboost_multistep': xgboost_multistep_predict,  # Multi-step XGBoost (7-day forecast)
     
     # Classification models (direction prediction)
     'logistic_regression': logistic_regression_predict,
@@ -463,7 +471,7 @@ def get_prediction():
     try:
         model_name = request.args.get('model', '').lower()
         symbol = request.args.get('symbol', 'AAPL').upper()
-        period = request.args.get('period', '2y')
+        period = request.args.get('period', '5y')  # Changed from 2y to 5y for better accuracy
         
         if not model_name or model_name not in MODELS:
             return jsonify({
@@ -613,11 +621,15 @@ def list_models():
     """List all available prediction models"""
     return jsonify({
         'models': [
-            {'id': 'lstm', 'name': 'LSTM', 'description': 'Long Short-Term Memory neural network'},
-            {'id': 'prophet', 'name': 'Prophet', 'description': 'Facebook Prophet time series model'},
-            {'id': 'arima', 'name': 'ARIMA', 'description': 'AutoRegressive Integrated Moving Average'},
-            {'id': 'randomforest', 'name': 'Random Forest', 'description': 'Random Forest ensemble model'},
-            {'id': 'xgboost', 'name': 'XGBoost', 'description': 'Extreme Gradient Boosting model'}
+            {'id': 'lstm_multistep', 'name': 'Multi-Step LSTM', 'description': 'BiLSTM predicting 7 days ahead with trend classification (Recommended)'},
+            {'id': 'prophet_multistep', 'name': 'Multi-Step Prophet', 'description': 'Prophet predicting 7 days ahead with trend classification (Recommended)'},
+            {'id': 'arima', 'name': 'ARIMA (Multi-Step)', 'description': 'ARIMA with 7-day forecasting and trend classification (Recommended)'},
+            {'id': 'randomforest_multistep', 'name': 'Multi-Step Random Forest', 'description': 'Random Forest predicting 7 days ahead with trend classification (Recommended)'},
+            {'id': 'xgboost_multistep', 'name': 'Multi-Step XGBoost', 'description': 'XGBoost predicting 7 days ahead with trend classification (Recommended)'},
+            {'id': 'lstm', 'name': 'LSTM (Legacy)', 'description': 'Single-day LSTM prediction'},
+            {'id': 'prophet', 'name': 'Prophet (Legacy)', 'description': 'Single-day Prophet prediction'},
+            {'id': 'randomforest', 'name': 'Random Forest (Legacy)', 'description': 'Single-day Random Forest prediction'},
+            {'id': 'xgboost', 'name': 'XGBoost (Legacy)', 'description': 'Single-day XGBoost prediction'}
         ]
     })
 
