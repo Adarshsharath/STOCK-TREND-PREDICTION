@@ -1,24 +1,32 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_caching import Cache
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import sys
 import os
 import numpy as np
 import pandas as pd
-from datetime import timedelta
+from datetime import timedelta, datetime
+from dotenv import load_dotenv
+import traceback
+
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Load environment variables from .env
+load_dotenv()
+
 # Import utilities
-from utils.fetch_data import fetch_stock_data
+from utils.fetch_data import fetch_stock_data, fetch_live_candles
+from utils.live_stream import stream
 from utils.sentiment_volatility import analyze_market_sentiment, calculate_atr_volatility
 from utils.explainability import generate_prediction_reasoning
 from utils.market_overview import get_market_indices, generate_market_summary, get_top_gainers_losers
 from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
 from utils.confidence_calculator import get_confidence_explanation
 from utils.market_data import fetch_market_valuation, get_market_summary
+from utils.market_hours import is_market_open, get_market_status_message
 
 # Import strategies
 from strategies.ema_crossover import ema_crossover_strategy
@@ -38,6 +46,7 @@ from models.prophet_model import prophet_predict
 from models.arima_model import arima_predict
 from models.randomforest_model import randomforest_predict
 from models.xgboost_model import xgboost_predict
+from models.signal_xgb_model import train_and_predict_multi_horizon
 
 # Import classifier models
 from models.logistic_regression_model import logistic_regression_predict
@@ -70,8 +79,15 @@ jwt = JWTManager(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 # Initialize database
-from database import init_db
+from database import init_db, add_favorite, remove_favorite, list_favorites
+from utils.market_snapshots import get_intraday_summary
 init_db()
+
+# Start live price stream (websocket or polling fallback)
+try:
+    stream.start()
+except Exception:
+    pass
 
 # Register auth blueprint
 from auth import auth_bp
@@ -85,6 +101,11 @@ def clean_nan_values(obj):
         return {key: clean_nan_values(value) for key, value in obj.items()}
     elif isinstance(obj, list):
         return [clean_nan_values(item) for item in obj]
+    elif isinstance(obj, (pd.Timestamp, datetime, np.datetime64)):
+        try:
+            return pd.to_datetime(obj).isoformat()
+        except Exception:
+            return str(obj)
     elif isinstance(obj, float):
         if np.isnan(obj) or np.isinf(obj):
             return None
@@ -151,20 +172,55 @@ def health_check():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'message': 'FinSight AI Backend is running'})
 
+@app.route('/api/live/subscribe', methods=['POST', 'GET'])
+def live_subscribe():
+    symbol = request.args.get('symbol') or request.json.get('symbol') if request.is_json else None
+    if not symbol:
+        return jsonify({'error': 'symbol is required'}), 400
+    ok = stream.subscribe(symbol.upper())
+    return jsonify({'success': bool(ok), 'symbol': symbol.upper()})
+
+@app.route('/api/live/quote', methods=['GET'])
+def live_quote():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'symbol is required'}), 400
+    quote = stream.get_quote(symbol)
+    if not quote:
+        return jsonify({'error': 'No quote yet'}), 404
+    return jsonify(quote)
+
+@app.route('/api/live/candles', methods=['GET'])
+def live_candles():
+    symbol = request.args.get('symbol')
+    lookback = int(request.args.get('lookback', '300'))
+    if not symbol:
+        return jsonify({'error': 'symbol is required'}), 400
+    df = stream.get_candles(symbol, lookback=lookback)
+    if df is None or df.empty:
+        return jsonify({'error': 'No candles yet'}), 404
+    return jsonify({
+        'symbol': symbol.upper(),
+        'data_source': 'websocket' if stream.mode == 'websocket' else 'polling',
+        'candles': df.to_dict('records')
+    })
+
 @app.route('/api/strategy', methods=['GET'])
 def get_strategy():
     """
-    Get trading strategy signals
+    Get trading strategy signals based on historical price data
     
     Query Parameters:
         name: Strategy name (ema_crossover, rsi, macd, bollinger_scalping, supertrend)
         symbol: Stock symbol (e.g., AAPL, INFY.NS)
         period: Data period (default: 1y)
+        interval: Data interval (default: 1d)
     """
     try:
         strategy_name = request.args.get('name', '').lower()
         symbol = request.args.get('symbol', 'AAPL').upper()
         period = request.args.get('period', '1y')
+        interval = request.args.get('interval', '1d')
         
         if not strategy_name or strategy_name not in STRATEGIES:
             return jsonify({
@@ -172,18 +228,225 @@ def get_strategy():
                 'available_strategies': list(STRATEGIES.keys())
             }), 400
         
-        # Fetch stock data
-        df = fetch_stock_data(symbol, period=period)
+        # Fetch historical data (training/backtesting friendly)
+        df = fetch_stock_data(symbol, period=period, interval=interval)
         
         # Apply strategy
         strategy_func = STRATEGIES[strategy_name]
         result = strategy_func(df)
         
+        # Add data source flag for frontend visibility
+        try:
+            result['data_source'] = df.attrs.get('data_source', 'yfinance')
+        except Exception:
+            result['data_source'] = 'yfinance'
+
         # Clean NaN values for valid JSON
         result = clean_nan_values(result)
         
         return jsonify(result)
     
+    except Exception as e:
+        tb = traceback.format_exc()
+        try:
+            print(tb)
+        except Exception:
+            pass
+        # Return traceback only in development to help debug
+        if (os.getenv('FLASK_ENV', '').lower() == 'development') or (os.getenv('FLASK_DEBUG', '').lower() in ['1', 'true', 'yes']):
+            return jsonify({'error': str(e), 'traceback': tb}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/strategy/live', methods=['GET'])
+def get_strategy_live():
+    """Run a trading strategy on recent intraday candles for near-real-time signals.
+
+    Query Parameters:
+        name: Strategy name (ema_crossover, rsi, macd, bollinger_scalping, supertrend, ichimoku, adx_dmi, vwap, breakout, ml_lstm)
+        symbol: Stock symbol (e.g., AAPL, RELIANCE.NS)
+        resolution: Candle resolution in minutes. Supported: '1','5','15','30','60' (default: '1')
+        lookback: Number of minutes to look back for candles (default: 240)
+    """
+    try:
+        strategy_name = request.args.get('name', '').lower()
+        symbol = request.args.get('symbol', 'AAPL').upper()
+        resolution = request.args.get('resolution', '1')
+        lookback = int(request.args.get('lookback', '240'))
+
+        if not strategy_name or strategy_name not in STRATEGIES:
+            return jsonify({
+                'error': 'Invalid strategy name',
+                'available_strategies': list(STRATEGIES.keys())
+            }), 400
+
+        # Check if market is open for this symbol
+        market_status = is_market_open(symbol=symbol)
+        
+        # Fetch recent intraday candles using yfinance
+        df = fetch_live_candles(symbol, resolution=resolution, lookback_minutes=lookback)
+        if df is None or df.empty:
+            return jsonify({'error': f'No live candle data available for symbol: {symbol}'}), 404
+
+        # Apply strategy on live candles
+        strategy_func = STRATEGIES[strategy_name]
+        result = strategy_func(df)
+
+        # Attach data source
+        try:
+            result['data_source'] = df.attrs.get('data_source', 'live')
+        except Exception:
+            result['data_source'] = 'live'
+        
+        # Add market status information
+        result['market_status'] = market_status
+
+        # Add convenience field for frontend polling/notifications
+        latest_signal = None
+        try:
+            latest_buy = (result.get('buy_signals') or [])
+            latest_sell = (result.get('sell_signals') or [])
+
+            candidate = None
+            for s in latest_buy:
+                candidate = s if candidate is None else (s if str(s.get('date', '')) > str(candidate.get('date', '')) else candidate)
+            for s in latest_sell:
+                candidate = s if candidate is None else (s if str(s.get('date', '')) > str(candidate.get('date', '')) else candidate)
+
+            if candidate is not None:
+                # Determine type by membership (best-effort)
+                signal_type = 'BUY' if any(str(s.get('date', '')) == str(candidate.get('date', '')) for s in latest_buy) else 'SELL'
+                latest_signal = {
+                    'type': signal_type,
+                    'date': candidate.get('date'),
+                    'close': candidate.get('close'),
+                    'symbol': symbol,
+                    'strategy': strategy_name,
+                    'resolution': resolution
+                }
+        except Exception:
+            latest_signal = None
+
+        result['latest_signal'] = latest_signal
+        result['symbol'] = symbol
+        result['resolution'] = resolution
+        result['lookback'] = lookback
+
+        result = clean_nan_values(result)
+        return jsonify(result)
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        try:
+            print(tb)
+        except Exception:
+            pass
+        if (os.getenv('FLASK_ENV', '').lower() == 'development') or (os.getenv('FLASK_DEBUG', '').lower() in ['1', 'true', 'yes']):
+            return jsonify({'error': str(e), 'traceback': tb}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/signal', methods=['GET'])
+def get_trading_signal():
+    """
+    Generate production-oriented multi-horizon trading signal
+    
+    Query Parameters:
+        symbol: Stock symbol (e.g., AAPL, INFY.NS)
+        period: Data period (default: 5y, supports up to 10y)
+    Returns:
+        JSON with aggregate final signal (BUY/SELL/HOLD), confidence, explanations, and backtest metrics
+    """
+    try:
+        symbol = request.args.get('symbol', 'AAPL').upper()
+        period = request.args.get('period', '5y')
+
+        # Fetch historical data (long horizon)
+        df = fetch_stock_data(symbol, period=period, interval='1d')
+        if df is None or df.empty:
+            return jsonify({'error': f'No data available for symbol: {symbol}'}), 400
+
+        # Optional: benchmark could be fetched here (e.g., SPY / ^NSEI) and passed in
+        result = train_and_predict_multi_horizon(df)
+
+        # Clean NaN/infs
+        result = clean_nan_values(result)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/favorites', methods=['GET'])
+@jwt_required()
+def get_favorites():
+    """Get the current user's favorite symbols"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        items = list_favorites(current_user_id)
+        if isinstance(items, dict) and items.get('error'):
+            return jsonify({'error': items['error']}), 500
+        return jsonify({'favorites': items})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/favorites', methods=['POST'])
+@jwt_required()
+def add_favorite_symbol():
+    """Add a symbol to the current user's favorites"""
+    try:
+        data = request.get_json() or {}
+        symbol = (data.get('symbol') or '').strip().upper()
+        display_name = data.get('display_name')
+        if not symbol:
+            return jsonify({'error': 'Symbol is required'}), 400
+        current_user_id = int(get_jwt_identity())
+        # Validate symbol has data
+        try:
+            df_check = fetch_stock_data(symbol, period='5d', interval='1d')
+            if df_check is None or df_check.empty:
+                return jsonify({'error': f'No stock available for symbol: {symbol}'}), 400
+        except Exception:
+            return jsonify({'error': f'No stock available for symbol: {symbol}'}), 400
+        result = add_favorite(current_user_id, symbol, display_name)
+        if not result.get('success'):
+            return jsonify({'error': result.get('error', 'Failed to add favorite')}), 400
+        # Invalidate favorites summary cache for this user
+        cache.delete(f"fav_summary:{current_user_id}")
+        items = list_favorites(current_user_id)
+        return jsonify({'message': 'Added to favorites', 'favorites': items}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/favorites/<symbol>', methods=['DELETE'])
+@jwt_required()
+def delete_favorite_symbol(symbol):
+    """Remove a symbol from the current user's favorites"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        result = remove_favorite(current_user_id, (symbol or '').upper())
+        if not result.get('success'):
+            return jsonify({'error': result.get('error', 'Failed to remove favorite')}), 404
+        # Invalidate favorites summary cache for this user
+        cache.delete(f"fav_summary:{current_user_id}")
+        items = list_favorites(current_user_id)
+        return jsonify({'message': 'Removed from favorites', 'favorites': items})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/favorites/summary', methods=['GET'])
+@jwt_required()
+def favorites_summary():
+    """Get intraday summary for current user's favorite symbols"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        items = list_favorites(current_user_id)
+        if isinstance(items, dict) and items.get('error'):
+            return jsonify({'error': items['error']}), 500
+        symbols = [i['symbol'] for i in items]
+        cache_key = f"fav_summary:{current_user_id}:{','.join(sorted(symbols))}"
+        cached = cache.get(cache_key)
+        if cached:
+            return jsonify(clean_nan_values(cached))
+        summary = get_intraday_summary(symbols)
+        cache.set(cache_key, summary, timeout=60)
+        return jsonify(clean_nan_values(summary))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -593,7 +856,7 @@ def get_simulator_data():
         })
         
         print(f"✓ Generated {len(df)} days of MOCK data")
-        print(f"  Price range: ${min(prices):.2f} - ${max(prices):.2f}")
+        print(f"  Price range: ₹{min(prices):.2f} - ₹{max(prices):.2f}")
         print(f"  Data source: {data_source.upper()}")
         
         # OPTIONAL: Try Yahoo Finance (uncomment to enable)

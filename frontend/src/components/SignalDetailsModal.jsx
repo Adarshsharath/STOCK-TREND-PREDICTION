@@ -227,7 +227,7 @@ const SignalDetailsModal = ({ signal, onClose }) => {
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-dark-text-muted mb-1">Price</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-dark-text">${signal.price.toFixed(2)}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-dark-text">₹{signal.price.toFixed(2)}</p>
             </div>
           </div>
 

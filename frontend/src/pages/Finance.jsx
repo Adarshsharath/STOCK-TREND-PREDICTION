@@ -52,38 +52,175 @@ const TRADING_TYPES = [
 
 const POPULAR_STOCKS = {
   indian: [
-    { symbol: 'RELIANCE.NS', name: 'Reliance Industries' },
-    { symbol: 'TCS.NS', name: 'Tata Consultancy Services' },
-    { symbol: 'INFY.NS', name: 'Infosys Limited' },
+    // Large Cap - Banking & Financial Services
     { symbol: 'HDFCBANK.NS', name: 'HDFC Bank' },
     { symbol: 'ICICIBANK.NS', name: 'ICICI Bank' },
-    { symbol: 'WIPRO.NS', name: 'Wipro Limited' },
-    { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel' },
-    { symbol: 'ITC.NS', name: 'ITC Limited' },
-    { symbol: 'SBIN.NS', name: 'State Bank of India' },
-    { symbol: 'LT.NS', name: 'Larsen & Toubro' },
-    { symbol: 'AXISBANK.NS', name: 'Axis Bank' },
-    { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever' },
     { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank' },
+    { symbol: 'SBIN.NS', name: 'State Bank of India' },
+    { symbol: 'AXISBANK.NS', name: 'Axis Bank' },
     { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance' },
-    { symbol: 'MARUTI.NS', name: 'Maruti Suzuki' }
+    { symbol: 'BAJAJFINSV.NS', name: 'Bajaj Finserv' },
+    
+    // Large Cap - IT & Technology
+    { symbol: 'TCS.NS', name: 'Tata Consultancy Services' },
+    { symbol: 'INFY.NS', name: 'Infosys Limited' },
+    { symbol: 'WIPRO.NS', name: 'Wipro Limited' },
+    { symbol: 'HCLTECH.NS', name: 'HCL Technologies' },
+    { symbol: 'TECHM.NS', name: 'Tech Mahindra' },
+    { symbol: 'LTI.NS', name: 'LTI Mindtree' },
+    
+    // Large Cap - Energy & Oil
+    { symbol: 'RELIANCE.NS', name: 'Reliance Industries' },
+    { symbol: 'ONGC.NS', name: 'Oil & Natural Gas Corp' },
+    { symbol: 'BPCL.NS', name: 'Bharat Petroleum' },
+    { symbol: 'IOC.NS', name: 'Indian Oil Corporation' },
+    { symbol: 'NTPC.NS', name: 'NTPC Limited' },
+    { symbol: 'POWERGRID.NS', name: 'Power Grid Corp' },
+    
+    // Large Cap - Consumer Goods & FMCG
+    { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever' },
+    { symbol: 'ITC.NS', name: 'ITC Limited' },
+    { symbol: 'NESTLEIND.NS', name: 'Nestle India' },
+    { symbol: 'BRITANNIA.NS', name: 'Britannia Industries' },
+    { symbol: 'DABUR.NS', name: 'Dabur India' },
+    { symbol: 'GODREJCP.NS', name: 'Godrej Consumer Products' },
+    
+    // Large Cap - Telecom & Infra
+    { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel' },
+    { symbol: 'LT.NS', name: 'Larsen & Toubro' },
+    { symbol: 'ADANIPORTS.NS', name: 'Adani Ports' },
+    { symbol: 'ADANIENT.NS', name: 'Adani Enterprises' },
+    
+    // Large Cap - Automobile
+    { symbol: 'MARUTI.NS', name: 'Maruti Suzuki' },
+    { symbol: 'TATAMOTORS.NS', name: 'Tata Motors' },
+    { symbol: 'M&M.NS', name: 'Mahindra & Mahindra' },
+    { symbol: 'BAJAJ-AUTO.NS', name: 'Bajaj Auto' },
+    { symbol: 'HEROMOTOCO.NS', name: 'Hero MotoCorp' },
+    { symbol: 'EICHERMOT.NS', name: 'Eicher Motors' },
+    
+    // Large Cap - Pharma & Healthcare
+    { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical' },
+    { symbol: 'DRREDDY.NS', name: 'Dr. Reddy\'s Laboratories' },
+    { symbol: 'CIPLA.NS', name: 'Cipla Limited' },
+    { symbol: 'DIVISLAB.NS', name: 'Divi\'s Laboratories' },
+    { symbol: 'APOLLOHOSP.NS', name: 'Apollo Hospitals' },
+    
+    // Large Cap - Metals & Mining
+    { symbol: 'TATASTEEL.NS', name: 'Tata Steel' },
+    { symbol: 'HINDALCO.NS', name: 'Hindalco Industries' },
+    { symbol: 'JSWSTEEL.NS', name: 'JSW Steel' },
+    { symbol: 'COALINDIA.NS', name: 'Coal India' },
+    
+    // Large Cap - Real Estate & Cement
+    { symbol: 'ULTRACEMCO.NS', name: 'UltraTech Cement' },
+    { symbol: 'GRASIM.NS', name: 'Grasim Industries' },
+    { symbol: 'DLF.NS', name: 'DLF Limited' },
+    
+    // Mid Cap - Emerging Leaders
+    { symbol: 'TITAN.NS', name: 'Titan Company' },
+    { symbol: 'ASIANPAINT.NS', name: 'Asian Paints' },
+    { symbol: 'INDIGO.NS', name: 'InterGlobe Aviation' },
+    { symbol: 'PIDILITIND.NS', name: 'Pidilite Industries' },
+    { symbol: 'HAVELLS.NS', name: 'Havells India' },
+    { symbol: 'BERGEPAINT.NS', name: 'Berger Paints' },
+    { symbol: 'VEDL.NS', name: 'Vedanta Limited' }
   ],
   us: [
+    // Tech Giants - FAANG+
     { symbol: 'AAPL', name: 'Apple Inc.' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc. (Google)' },
     { symbol: 'MSFT', name: 'Microsoft Corporation' },
-    { symbol: 'TSLA', name: 'Tesla Inc.' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation' },
     { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-    { symbol: 'META', name: 'Meta Platforms Inc.' },
+    { symbol: 'META', name: 'Meta Platforms (Facebook)' },
     { symbol: 'NFLX', name: 'Netflix Inc.' },
+    
+    // Semiconductors & AI
+    { symbol: 'NVDA', name: 'NVIDIA Corporation' },
     { symbol: 'AMD', name: 'Advanced Micro Devices' },
     { symbol: 'INTC', name: 'Intel Corporation' },
+    { symbol: 'TSM', name: 'Taiwan Semiconductor' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.' },
+    { symbol: 'QCOM', name: 'Qualcomm Inc.' },
+    { symbol: 'MU', name: 'Micron Technology' },
+    
+    // Software & Cloud
     { symbol: 'ORCL', name: 'Oracle Corporation' },
-    { symbol: 'CSCO', name: 'Cisco Systems' },
     { symbol: 'ADBE', name: 'Adobe Inc.' },
     { symbol: 'CRM', name: 'Salesforce Inc.' },
-    { symbol: 'PYPL', name: 'PayPal Holdings' }
+    { symbol: 'NOW', name: 'ServiceNow Inc.' },
+    { symbol: 'SNOW', name: 'Snowflake Inc.' },
+    { symbol: 'PLTR', name: 'Palantir Technologies' },
+    
+    // Electric Vehicles & Energy
+    { symbol: 'TSLA', name: 'Tesla Inc.' },
+    { symbol: 'RIVN', name: 'Rivian Automotive' },
+    { symbol: 'LCID', name: 'Lucid Group' },
+    { symbol: 'F', name: 'Ford Motor Company' },
+    { symbol: 'GM', name: 'General Motors' },
+    { symbol: 'XOM', name: 'Exxon Mobil Corp' },
+    { symbol: 'CVX', name: 'Chevron Corporation' },
+    
+    // Finance & Banking
+    { symbol: 'JPM', name: 'JPMorgan Chase & Co' },
+    { symbol: 'BAC', name: 'Bank of America' },
+    { symbol: 'WFC', name: 'Wells Fargo & Co' },
+    { symbol: 'GS', name: 'Goldman Sachs Group' },
+    { symbol: 'MS', name: 'Morgan Stanley' },
+    { symbol: 'V', name: 'Visa Inc.' },
+    { symbol: 'MA', name: 'Mastercard Inc.' },
+    { symbol: 'PYPL', name: 'PayPal Holdings' },
+    { symbol: 'SQ', name: 'Block Inc. (Square)' },
+    
+    // E-commerce & Retail
+    { symbol: 'WMT', name: 'Walmart Inc.' },
+    { symbol: 'COST', name: 'Costco Wholesale' },
+    { symbol: 'TGT', name: 'Target Corporation' },
+    { symbol: 'HD', name: 'Home Depot Inc.' },
+    { symbol: 'LOW', name: 'Lowe\'s Companies' },
+    { symbol: 'SHOP', name: 'Shopify Inc.' },
+    
+    // Healthcare & Pharma
+    { symbol: 'JNJ', name: 'Johnson & Johnson' },
+    { symbol: 'UNH', name: 'UnitedHealth Group' },
+    { symbol: 'PFE', name: 'Pfizer Inc.' },
+    { symbol: 'ABBV', name: 'AbbVie Inc.' },
+    { symbol: 'LLY', name: 'Eli Lilly and Company' },
+    { symbol: 'MRNA', name: 'Moderna Inc.' },
+    { symbol: 'TMO', name: 'Thermo Fisher Scientific' },
+    
+    // Networking & Communications
+    { symbol: 'CSCO', name: 'Cisco Systems' },
+    { symbol: 'T', name: 'AT&T Inc.' },
+    { symbol: 'VZ', name: 'Verizon Communications' },
+    { symbol: 'TMUS', name: 'T-Mobile US Inc.' },
+    
+    // Entertainment & Media
+    { symbol: 'DIS', name: 'Walt Disney Company' },
+    { symbol: 'CMCSA', name: 'Comcast Corporation' },
+    { symbol: 'PARA', name: 'Paramount Global' },
+    { symbol: 'WBD', name: 'Warner Bros Discovery' },
+    
+    // Aerospace & Defense
+    { symbol: 'BA', name: 'Boeing Company' },
+    { symbol: 'LMT', name: 'Lockheed Martin' },
+    { symbol: 'RTX', name: 'Raytheon Technologies' },
+    
+    // Consumer Goods
+    { symbol: 'KO', name: 'Coca-Cola Company' },
+    { symbol: 'PEP', name: 'PepsiCo Inc.' },
+    { symbol: 'NKE', name: 'Nike Inc.' },
+    { symbol: 'SBUX', name: 'Starbucks Corporation' },
+    { symbol: 'MCD', name: 'McDonald\'s Corporation' },
+    
+    // High Growth Tech
+    { symbol: 'COIN', name: 'Coinbase Global' },
+    { symbol: 'ROKU', name: 'Roku Inc.' },
+    { symbol: 'UBER', name: 'Uber Technologies' },
+    { symbol: 'LYFT', name: 'Lyft Inc.' },
+    { symbol: 'ABNB', name: 'Airbnb Inc.' },
+    { symbol: 'DOCU', name: 'DocuSign Inc.' },
+    { symbol: 'ZM', name: 'Zoom Video Communications' }
   ]
 }
 
@@ -356,7 +493,7 @@ const Finance = () => {
                   {hasPrice && (
                     <div className="text-right">
                       <p className="text-sm font-bold text-text dark:text-dark-text">
-                        {activeMarket === 'indian' ? '₹' : '$'}{priceData.price.toFixed(2)}
+                        ₹{priceData.price.toFixed(2)}
                       </p>
                       <div className={`text-xs font-semibold flex items-center justify-end ${
                         isPositive ? 'text-green-600' : 'text-red-600'

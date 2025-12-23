@@ -99,26 +99,12 @@ def chat_with_perplexity(user_message, conversation_history=None):
         }
 
 def get_market_news(category='general'):
-    """Get general market news from Finnhub"""
-    try:
-        url = f"{FINNHUB_BASE_URL}/news"
-        params = {'category': category, 'token': FINNHUB_API_KEY}
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        return response.json()[:5]  # Return top 5 news
-    except Exception as e:
-        return []
+    """Get general market news - placeholder for future implementation"""
+    return []
 
 def get_company_profile(symbol):
-    """Get company profile from Finnhub"""
-    try:
-        url = f"{FINNHUB_BASE_URL}/stock/profile2"
-        params = {'symbol': symbol, 'token': FINNHUB_API_KEY}
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        return None
+    """Get company profile - placeholder for future implementation"""
+    return None
 
 def format_stock_response(symbol, quote, profile, news):
     """Format a comprehensive stock response"""
@@ -126,7 +112,6 @@ def format_stock_response(symbol, quote, profile, news):
     
     if profile:
         response += f"**Company**: {profile.get('name', symbol)}\n"
-        response += f"**Industry**: {profile.get('finnhubIndustry', 'N/A')}\n\n"
     
     if quote and quote.get('c'):
         current_price = quote.get('c', 0)
@@ -136,10 +121,10 @@ def format_stock_response(symbol, quote, profile, news):
         low = quote.get('l', 0)
         
         emoji = "🟢" if change >= 0 else "🔴"
-        response += f"**Current Price**: ${current_price:.2f}\n"
-        response += f"**Change**: {emoji} ${change:.2f} ({change_percent:.2f}%)\n"
-        response += f"**Day High**: ${high:.2f}\n"
-        response += f"**Day Low**: ${low:.2f}\n\n"
+        response += f"**Current Price**: ₹{current_price:.2f}\n"
+        response += f"**Change**: {emoji} ₹{change:.2f} ({change_percent:.2f}%)\n"
+        response += f"**Day High**: ₹{high:.2f}\n"
+        response += f"**Day Low**: ₹{low:.2f}\n\n"
     
     if news:
         response += "**📰 Latest News:**\n"
@@ -262,7 +247,7 @@ def generate_general_response(message):
 **Key Principles**:
 1. **Position Sizing**: Don't put all eggs in one basket (max 5-10% per position)
 2. **Stop-Loss Orders**: Set automatic exit points to limit losses
-3. **Risk-Reward Ratio**: Aim for at least 1:2 (risk $1 to make $2)
+3. **Risk-Reward Ratio**: Aim for at least 1:2 (risk ₹1 to make ₹2)
 4. **Diversification**: Spread risk across different assets
 
 **Common Risk Management Rules**:
@@ -318,7 +303,7 @@ def generate_general_response(message):
     if any(word in message_lower for word in ['crypto', 'bitcoin', 'btc', 'ethereum', 'eth', 'blockchain']):
         return """🪙 **Cryptocurrency Information**:
 
-I'm primarily focused on stock market data through Finnhub API, which specializes in traditional equities.
+I'm primarily focused on stock market data through yfinance, which provides comprehensive market data.
 
 **For Stock Information**, I can help with:
 - Real-time stock prices (e.g., AAPL, TSLA, MSFT)
@@ -412,9 +397,9 @@ I can assist you with:
 
 What would you like to know?"""
 
-def chat_with_finnhub(user_message, conversation_history=None):
+def chat_with_api(user_message, conversation_history=None):
     """
-    Process user message and provide intelligent financial responses using Finnhub API
+    Process user message and provide intelligent financial responses using available data sources
     
     Args:
         user_message: User's message
@@ -424,12 +409,6 @@ def chat_with_finnhub(user_message, conversation_history=None):
         dict with bot response and updated conversation history
     """
     try:
-        if not FINNHUB_API_KEY:
-            return {
-                'response': 'Finnhub API key not configured. Please set FINNHUB_API_KEY in your .env file.',
-                'error': True
-            }
-        
         # Extract stock symbol from message
         symbol = extract_stock_symbol(user_message)
         message_lower = user_message.lower()
@@ -485,7 +464,7 @@ def chat_with_finnhub(user_message, conversation_history=None):
         }
     
     except requests.exceptions.HTTPError as e:
-        error_msg = f'Finnhub API Error: {str(e)}'
+        error_msg = f'API Error: {str(e)}'
         try:
             error_detail = e.response.json()
             error_msg += f'\nDetails: {error_detail}'
@@ -497,7 +476,7 @@ def chat_with_finnhub(user_message, conversation_history=None):
         }
     except requests.exceptions.RequestException as e:
         return {
-            'response': f'Network error communicating with Finnhub: {str(e)}',
+            'response': f'Network error: {str(e)}',
             'error': True
         }
     except Exception as e:
@@ -505,3 +484,25 @@ def chat_with_finnhub(user_message, conversation_history=None):
             'response': f'Unexpected error: {str(e)}',
             'error': True
         }
+
+# Backward compatibility alias
+chat_with_finnhub = chat_with_api
+
+# Placeholder helper functions (to be implemented with yfinance if needed)
+def extract_stock_symbol(message):
+    """Extract stock symbol from user message - placeholder"""
+    import re
+    # Simple pattern to match stock symbols (usually 1-5 uppercase letters)
+    pattern = r'\b([A-Z]{1,5})\b'
+    matches = re.findall(pattern, message.upper())
+    if matches:
+        return matches[0]
+    return None
+
+def get_stock_quote(symbol):
+    """Get stock quote - placeholder for future yfinance implementation"""
+    return None
+
+def get_company_news(symbol):
+    """Get company news - placeholder for future implementation"""
+    return []

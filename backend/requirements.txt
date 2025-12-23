@@ -14,5 +14,7 @@ xgboost
 ta
 requests
 python-dotenv
+pytz
 gunicorn
 textblob==0.17.1
+feedparser

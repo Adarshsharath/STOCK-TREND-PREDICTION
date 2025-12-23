@@ -57,7 +57,7 @@ const SignalNotification = ({ signal, onClose, onMoreInfo }) => {
 
         <div className="mb-4">
           <p className="text-sm text-gray-600 dark:text-dark-text-muted mb-1">Price</p>
-          <p className="font-bold text-xl text-gray-900 dark:text-white">${signal.price.toFixed(2)}</p>
+          <p className="font-bold text-xl text-gray-900 dark:text-white">₹{signal.price.toFixed(2)}</p>
         </div>
 
         {/* Action Button */}

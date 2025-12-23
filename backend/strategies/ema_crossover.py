@@ -25,6 +25,9 @@ def ema_crossover_strategy(df, short_period=9, long_period=21):
         dict with signals, data, and metadata
     """
     df = df.copy()
+    # Ensure columns are simple strings and de-duplicated (pandas may error on .at with duplicate columns)
+    df.columns = [str(c) for c in df.columns]
+    df = df.loc[:, ~pd.Index(df.columns).duplicated()].copy()
     
     # Ensure date is a column, not index
     if 'date' not in df.columns and df.index.name == 'date':

@@ -179,7 +179,7 @@ const LiveMarket = () => {
                         <p className="text-sm text-text-muted">{stock.symbol}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-text">${stock.price.toFixed(2)}</p>
+                        <p className="font-bold text-text">₹{stock.price.toFixed(2)}</p>
                         <p className="text-sm font-semibold text-success">
                           +{stock.change_percent.toFixed(2)}%
                         </p>
@@ -205,7 +205,7 @@ const LiveMarket = () => {
                         <p className="text-sm text-text-muted">{stock.symbol}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-text">${stock.price.toFixed(2)}</p>
+                        <p className="font-bold text-text">₹{stock.price.toFixed(2)}</p>
                         <p className="text-sm font-semibold text-danger">
                           {stock.change_percent.toFixed(2)}%
                         </p>
