@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import AstroPopup from './components/AstroPopup'
+import WhaleAlertPopup from './components/WhaleAlertPopup'
 import Home from './pages/Home'
 import Strategies from './pages/Strategies'
 import StrategyDetail from './pages/StrategyDetail'
@@ -36,6 +38,9 @@ function RedirectHandler() {
 }
 
 function App() {
+  const [astroPopupOpen, setAstroPopupOpen] = useState(false)
+  const [whaleAlertOpen, setWhaleAlertOpen] = useState(false)
+
   return (
     <ThemeProvider>
       <Router>
@@ -52,6 +57,19 @@ function App() {
                 <Route path="/*" element={
                   <>
                     <Navbar />
+                    
+                    {/* Floating Action Buttons and Popups positioned on top-right */}
+                    <AstroPopup 
+                      isOpen={astroPopupOpen} 
+                      onClose={() => setAstroPopupOpen(false)}
+                      onToggle={() => setAstroPopupOpen(!astroPopupOpen)}
+                    />
+                    <WhaleAlertPopup 
+                      isOpen={whaleAlertOpen} 
+                      onClose={() => setWhaleAlertOpen(false)}
+                      onToggle={() => setWhaleAlertOpen(!whaleAlertOpen)}
+                    />
+                    
                     <main className="container mx-auto px-6 py-8">
                       <Routes>
                         <Route path="/" element={<Home />} />

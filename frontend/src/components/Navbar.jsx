@@ -63,6 +63,8 @@ const Navbar = () => {
               )
             })}
             
+
+
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}

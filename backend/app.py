@@ -894,6 +894,268 @@ def get_simulator_data():
             'success': False
         }), 500
 
+@app.route('/api/astrology', methods=['POST'])
+@jwt_required()
+def get_astrology_insights():
+    """
+    Get astrology-based insights for trading guidance
+    
+    Request Body:
+        dob: Date of birth in YYYY-MM-DD format (required)
+        
+    The system automatically fills missing fields with defaults:
+        - Time: 12:00:00 PM (noon)
+        - Location: 20.5937°N, 78.9629°E (India center)
+        - Timezone: IST (UTC+5.5)
+        - Settings: topocentric observation, lahiri ayanamsha
+    
+    Returns:
+        Astrological data with trading suggestions (NOT financial advice)
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # ============================================================
+        # VALIDATION: Date of Birth
+        # ============================================================
+        if not data or 'dob' not in data:
+            return jsonify({'error': 'Date of birth is required'}), 400
+        
+        dob = data['dob']
+        
+        # Validate date format and logical constraints
+        try:
+            dob_date = datetime.strptime(dob, '%Y-%m-%d')
+            
+            # Check if date is not in the future
+            if dob_date > datetime.now():
+                return jsonify({'error': 'Date of birth cannot be in the future'}), 400
+            
+            # Check if date is reasonable (not too far in the past)
+            min_date = datetime(1900, 1, 1)
+            if dob_date < min_date:
+                return jsonify({'error': 'Date of birth must be after 1900'}), 400
+                
+        except ValueError as e:
+            return jsonify({'error': 'Invalid date format. Please use YYYY-MM-DD (e.g., 1990-05-15)'}), 400
+        
+        # ============================================================
+        # USER PROVIDED DATA (from date of birth only)
+        # ============================================================
+        day = dob_date.day      # User provided: day
+        month = dob_date.month  # User provided: month
+        year = dob_date.year    # User provided: year
+        
+        # ============================================================
+        # DEFAULT VALUES (automatically filled for missing details)
+        # These defaults ensure the API request is valid
+        # ============================================================
+        hours = 12              # Defaulted: noon (12:00 PM)
+        minutes = 0             # Defaulted: 0 minutes
+        seconds = 0             # Defaulted: 0 seconds
+        latitude = 20.5937      # Defaulted: India center latitude
+        longitude = 78.9629     # Defaulted: India center longitude
+        timezone = 5.5          # Defaulted: IST (UTC+5:30)
+        
+        # ============================================================
+        # API SETTINGS (as per FreeAstrologyAPI requirements)
+        # ============================================================
+        observation_point = "topocentric"  # Defaulted: topocentric observation
+        ayanamsha = "lahiri"               # Defaulted: lahiri ayanamsha system
+        
+        # Call FreeAstrologyAPI.com
+        import requests
+        
+        api_url = "https://json.freeastrologyapi.com/planets"
+        
+        # ============================================================
+        # BUILD REQUEST PAYLOAD
+        # Structure optimized to prevent 400 errors
+        # ============================================================
+        payload = {
+            # User provided fields (from DOB)
+            "year": year,
+            "month": month,
+            "day": day,
+            
+            # Defaulted time fields
+            "hour": hours,
+            "min": minutes,
+            
+            # Defaulted location fields
+            "lat": latitude,
+            "lon": longitude,
+            "tzone": timezone,
+            
+            # Defaulted settings (optional - remove if API returns 400)
+            "settings": {
+                "observation_point": observation_point,
+                "ayanamsha": ayanamsha
+            }
+        }
+        
+        # ============================================================
+        # SECURE API KEY HANDLING
+        # API key is kept on backend only (never exposed to frontend)
+        # ============================================================
+        headers = {'Content-Type': 'application/json'}
+        astrology_api_key = os.getenv('ASTROLOGY_API_KEY')
+        
+        if astrology_api_key:
+            headers['X-API-Key'] = astrology_api_key
+            print(f"[Astrology API] Using API key from environment")
+        else:
+            print(f"[Astrology API] WARNING: No API key found in environment. API may return 403.")
+            print(f"[Astrology API] Add ASTROLOGY_API_KEY to your .env file")
+        
+        # ============================================================
+        # API REQUEST WITH ERROR HANDLING
+        # ============================================================
+        try:
+            print(f"[Astrology API] Requesting planetary data for DOB: {dob}")
+            response = requests.post(api_url, json=payload, headers=headers, timeout=15)
+            
+            # Handle specific error codes
+            if response.status_code == 403:
+                return jsonify({
+                    'error': 'API authentication failed. Please ensure ASTROLOGY_API_KEY is set in your .env file.',
+                    'hint': 'Get your free API key from https://freeastrologyapi.com'
+                }), 403
+            elif response.status_code == 400:
+                # Try without settings if we get 400
+                print(f"[Astrology API] Got 400 with settings, retrying without...")
+                payload_simple = {k: v for k, v in payload.items() if k != 'settings'}
+                response = requests.post(api_url, json=payload_simple, headers=headers, timeout=15)
+                
+            response.raise_for_status()
+            astro_data = response.json()
+            print(f"[Astrology API] Successfully received planetary data")
+            
+        except requests.exceptions.Timeout:
+            return jsonify({'error': 'Astrology API request timed out. Please try again.'}), 504
+        except requests.exceptions.RequestException as e:
+            error_msg = str(e)
+            print(f"[Astrology API] Error: {error_msg}")
+            return jsonify({
+                'error': f'Failed to fetch astrology data: {error_msg}',
+                'hint': 'Please check your internet connection and API key configuration'
+            }), 500
+        
+        # ============================================================
+        # PARSE AND EXTRACT PLANETARY DATA
+        # ============================================================
+        key_info = {}
+        suggestion = ""
+        
+        try:
+            # Extract planetary positions from API response
+            if 'output' in astro_data:
+                planets = astro_data['output']
+                
+                # Get Sun and Moon signs (most relevant for daily guidance)
+                sun_sign = None
+                moon_sign = None
+                
+                for planet in planets:
+                    if planet.get('name') == 'Sun':
+                        sun_sign = planet.get('sign')
+                    elif planet.get('name') == 'Moon':
+                        moon_sign = planet.get('sign')
+                
+                if sun_sign:
+                    key_info['Sun Sign'] = sun_sign
+                if moon_sign:
+                    key_info['Moon Sign'] = moon_sign
+                
+                # Generate suggestion based on planetary data
+                suggestion = generate_astro_suggestion(planets, sun_sign, moon_sign)
+                print(f"[Astrology API] Parsed data: Sun={sun_sign}, Moon={moon_sign}")
+            else:
+                # Fallback if API structure is different
+                print(f"[Astrology API] Unexpected response structure: {list(astro_data.keys())}")
+                key_info['Status'] = 'Data received'
+                suggestion = generate_generic_suggestion()
+                
+        except Exception as e:
+            print(f"[Astrology API] Error parsing data: {str(e)}")
+            key_info['Status'] = 'Partial data'
+            suggestion = generate_generic_suggestion()
+        
+        # ============================================================
+        # RETURN RESPONSE
+        # ============================================================
+        return jsonify({
+            'success': True,
+            'keyInfo': key_info,
+            'suggestion': suggestion,
+            'dob': dob,
+            'timestamp': datetime.now().isoformat(),
+            'usedDefaults': True,  # Flag to indicate defaults were used
+            'defaults': {
+                'time': f'{hours:02d}:{minutes:02d}:{seconds:02d}',
+                'location': f'{latitude}°N, {longitude}°E',
+                'timezone': f'UTC+{timezone}',
+                'observation_point': observation_point,
+                'ayanamsha': ayanamsha
+            }
+        })
+        
+    except Exception as e:
+        print(f"[Astrology API] Unexpected error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def generate_astro_suggestion(planets, sun_sign=None, moon_sign=None):
+    """
+    Generate a supportive suggestion based on astrological data.
+    This is NOT financial advice - only general guidance about mindset and timing.
+    """
+    suggestions = []
+    
+    # Moon-based emotional state suggestions
+    moon_suggestions = {
+        'Aries': "High energy period — be mindful of impulsive decisions. Take time to review.",
+        'Taurus': "Stable mindset favors patience. Good time for steady planning.",
+        'Gemini': "Mental activity is high — great for research, but avoid overthinking.",
+        'Cancer': "Emotions may run strong. Consider a cautious approach today.",
+        'Leo': "Confidence is high — good for decision-making, but stay grounded.",
+        'Virgo': "Analytical clarity is strong. Excellent for detailed review.",
+        'Libra': "Balanced perspective — good time for evaluating options.",
+        'Scorpio': "Intense focus period — powerful for strategic planning.",
+        'Sagittarius': "Optimistic energy — balance enthusiasm with practical assessment.",
+        'Capricorn': "Disciplined mindset — excellent for structured decision-making.",
+        'Aquarius': "Innovative thinking period — good for new perspectives.",
+        'Pisces': "Intuitive phase — trust your instincts but verify with data."
+    }
+    
+    if moon_sign and moon_sign in moon_suggestions:
+        suggestions.append(moon_suggestions[moon_sign])
+    
+    # General timing suggestions based on planetary patterns
+    if planets:
+        # Check for retrograde patterns (simplified)
+        retrogrades = [p for p in planets if p.get('isRetro') == 'true']
+        if len(retrogrades) >= 2:
+            suggestions.append("Multiple planetary retrogrades suggest a period for review rather than aggressive moves.")
+    
+    # Return suggestion or fallback
+    if suggestions:
+        return " ".join(suggestions)
+    else:
+        return generate_generic_suggestion()
+
+def generate_generic_suggestion():
+    """Fallback generic suggestion"""
+    generic_suggestions = [
+        "Today favors a balanced approach — consider both opportunities and risks carefully.",
+        "Clear mindset period — good for planning and research.",
+        "Mixed energies today — focus on what you can control and stay patient.",
+        "Steady energy — suitable for maintaining current positions and observing.",
+        "Moderate volatility expected emotionally — consider taking a measured approach."
+    ]
+    import random
+    return random.choice(generic_suggestions)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
