@@ -46,6 +46,15 @@ def init_db():
         conversations = db.conversations
         conversations.create_index([("user_id", ASCENDING)])
         
+        # Create portfolios collection with compound index on user_id and symbol
+        portfolios = db.portfolios
+        portfolios.create_index([("user_id", ASCENDING), ("symbol", ASCENDING)], unique=True)
+        
+        # Create transactions collection with index on user_id
+        transactions = db.transactions
+        transactions.create_index([("user_id", ASCENDING)])
+        transactions.create_index([("timestamp", DESCENDING)])
+        
         print("MongoDB database initialized successfully!")
         return True
     except Exception as e:
@@ -76,6 +85,7 @@ def create_user(username, email, password):
             'email': email,
             'password': hashed_password,
             'experience_level': 'beginner',
+            'virtual_balance': 1000000.0, # Default: ₹1,000,000
             'created_at': datetime.utcnow()
         }
         
@@ -130,7 +140,8 @@ def verify_user(username, password):
                 'id': str(user['_id']),
                 'username': user['username'],
                 'email': user['email'],
-                'experience_level': user.get('experience_level', 'beginner')
+                'experience_level': user.get('experience_level', 'beginner'),
+                'virtual_balance': user.get('virtual_balance', 1000000.0)
             }
         
         return None
@@ -156,7 +167,8 @@ def get_user_by_id(user_id):
                 'id': str(user['_id']),
                 'username': user['username'],
                 'email': user['email'],
-                'experience_level': user.get('experience_level', 'beginner')
+                'experience_level': user.get('experience_level', 'beginner'),
+                'virtual_balance': user.get('virtual_balance', 1000000.0)
             }
         
         return None
@@ -237,6 +249,125 @@ def list_favorites(user_id):
         return results
     except Exception as e:
         return {'error': str(e)}
+
+# --- Paper Trading / Virtual Money Functions ---
+
+def get_virtual_balance(user_id):
+    """Get user's virtual balance"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        user = db.users.find_one({'_id': user_id}, {'virtual_balance': 1})
+        return user.get('virtual_balance', 1000000.0) if user else 1000000.0
+    except Exception:
+        return 1000000.0
+
+def update_virtual_balance(user_id, amount):
+    """Update user's virtual balance by adding amount (can be negative)"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        result = db.users.update_one(
+            {'_id': user_id},
+            {'$inc': {'virtual_balance': amount}}
+        )
+        return result.modified_count > 0
+    except Exception:
+        return False
+
+def get_portfolio(user_id):
+    """Get user's portfolio holdings"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        cursor = db.portfolios.find({'user_id': user_id})
+        return list(cursor)
+    except Exception:
+        return []
+
+def update_portfolio(user_id, symbol, quantity, price):
+    """Update portfolio holding after a trade"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        holding = db.portfolios.find_one({'user_id': user_id, 'symbol': symbol})
+        
+        if holding:
+            new_quantity = holding['quantity'] + quantity
+            if new_quantity <= 0:
+                db.portfolios.delete_one({'user_id': user_id, 'symbol': symbol})
+            else:
+                # Calculate new average price if buying
+                if quantity > 0:
+                    total_cost = (holding['quantity'] * holding['avg_price']) + (quantity * price)
+                    new_avg_price = total_cost / new_quantity
+                else:
+                    new_avg_price = holding['avg_price']
+                
+                db.portfolios.update_one(
+                    {'_id': holding['_id']},
+                    {'$set': {
+                        'quantity': new_quantity,
+                        'avg_price': new_avg_price,
+                        'updated_at': datetime.utcnow()
+                    }}
+                )
+        elif quantity > 0:
+            db.portfolios.insert_one({
+                'user_id': user_id,
+                'symbol': symbol,
+                'quantity': quantity,
+                'avg_price': price,
+                'updated_at': datetime.utcnow()
+            })
+        return True
+    except Exception:
+        return False
+
+def record_transaction(user_id, symbol, trade_type, quantity, price, strategy_used=None):
+    """Record a virtual trade transaction"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        transaction = {
+            'user_id': user_id,
+            'symbol': symbol,
+            'type': trade_type, # 'buy' or 'sell'
+            'quantity': quantity,
+            'price': float(price),
+            'total_val': float(quantity * price),
+            'timestamp': datetime.utcnow(),
+            'strategy_used': strategy_used,
+            'currency': 'INR'
+        }
+        db.transactions.insert_one(transaction)
+        return True
+    except Exception:
+        return False
+
+def get_transaction_history(user_id, limit=50):
+    """Get user's transaction history"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        cursor = db.transactions.find({'user_id': user_id}).sort('timestamp', DESCENDING).limit(limit)
+        results = []
+        for tx in cursor:
+            tx['_id'] = str(tx['_id'])
+            tx['user_id'] = str(tx['user_id'])
+            tx['timestamp'] = tx['timestamp'].isoformat()
+            results.append(tx)
+        return results
+    except Exception:
+        return []
 
 # Initialize database when module is imported
 if __name__ == '__main__':

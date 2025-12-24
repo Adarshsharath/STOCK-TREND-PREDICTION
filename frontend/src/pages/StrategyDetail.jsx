@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2, AlertCircle, DollarSign, TrendingDown } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Clock, Settings, Play, Loader2, AlertCircle, DollarSign, TrendingDown, IndianRupee, Activity } from 'lucide-react'
 import axios from 'axios'
 import StrategyChart from '../components/StrategyChart'
 import MarketValuation from '../components/MarketValuation'
 import NewsSentiment from '../components/NewsSentiment'
 import SignalStrength from '../components/SignalStrength'
+import TradeModal from '../components/TradeModal'
 import { strategiesData } from '../data/strategiesData'
 
 // Timeframe enforcement mapping
@@ -37,10 +38,10 @@ const StrategyDetail = () => {
   const { strategyId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const strategy = strategiesData.find(s => s.id === strategyId)
   const fromFinance = location.state?.fromFinance || sessionStorage.getItem('returnToFinance') === 'true'
-  
+
   const [selectedSubStrategy, setSelectedSubStrategy] = useState('')
   const [selectedTimeframe, setSelectedTimeframe] = useState('1d')
   const [symbol, setSymbol] = useState('RELIANCE.NS')
@@ -48,6 +49,8 @@ const StrategyDetail = () => {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false)
+  const [tradeSuccess, setTradeSuccess] = useState(null)
 
   // Get valid timeframes for current strategy
   const validTimeframes = strategyTimeframes[strategyId] || ['1d']
@@ -124,7 +127,7 @@ const StrategyDetail = () => {
       }
 
       const backendStrategyName = strategyMapping[strategyId]
-      
+
       if (!backendStrategyName) {
         setError('This strategy is not yet implemented. Please try another strategy.')
         setLoading(false)
@@ -138,7 +141,7 @@ const StrategyDetail = () => {
       }
 
       const response = await axios.get('/api/strategy', { params })
-      
+
       // Transform backend response to expected format
       const transformedResults = {
         data: response.data.data,
@@ -151,7 +154,7 @@ const StrategyDetail = () => {
           ...(response.data.sell_signals || []).map(s => ({ ...s, signal: 'SELL' }))
         ].sort((a, b) => new Date(b.date) - new Date(a.date))
       }
-      
+
       setResults(transformedResults)
     } catch (err) {
       console.error('Strategy analysis error:', err)
@@ -193,7 +196,7 @@ const StrategyDetail = () => {
             <p className="text-lg text-white text-opacity-95 max-w-2xl mb-4">
               {strategy.description}
             </p>
-            
+
             {/* Ideal Timeframes */}
             <div className="bg-white bg-opacity-20 rounded-lg p-4 inline-block">
               <p className="text-sm font-semibold mb-2 flex items-center">
@@ -240,11 +243,10 @@ const StrategyDetail = () => {
               <div
                 key={sub.id}
                 onClick={() => setSelectedSubStrategy(sub.id)}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedSubStrategy === sub.id
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedSubStrategy === sub.id
                     ? 'border-primary bg-blue-50'
                     : 'border-border bg-white hover:border-primary hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-text text-sm">{sub.name}</h4>
@@ -283,8 +285,8 @@ const StrategyDetail = () => {
               className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {allTimeframes.map(tf => (
-                <option 
-                  key={tf.value} 
+                <option
+                  key={tf.value}
                   value={tf.value}
                   disabled={!isTimeframeValid(tf.value)}
                   className={!isTimeframeValid(tf.value) ? 'text-gray-400' : ''}
@@ -373,7 +375,7 @@ const StrategyDetail = () => {
                   <p className="text-sm text-text-light leading-relaxed">{strategy.description}</p>
                 </div>
               </div>
-              
+
               {selectedSubStrategyData && (
                 <>
                   <div className="border-t border-border pt-3">
@@ -412,6 +414,26 @@ const StrategyDetail = () => {
         </div>
       )}
 
+      {/* Success Notification */}
+      {tradeSuccess && (
+        <div className="bg-green-100 border border-green-200 p-4 rounded-xl flex items-center justify-between mb-6 animate-bounce shadow-lg">
+          <div className="flex items-center space-x-3">
+            <div className="bg-green-500 p-1.5 rounded-full">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <p className="text-green-800 font-bold">
+              Trade executed successfully! {tradeSuccess.quantity} shares of {tradeSuccess.symbol} {tradeSuccess.type}ed.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/virtual-money')}
+            className="text-green-700 font-black underline underline-offset-4"
+          >
+            View Portfolio
+          </button>
+        </div>
+      )}
+
       {/* Results */}
       {results && (
         <div className="space-y-6">
@@ -420,7 +442,7 @@ const StrategyDetail = () => {
             <div className="bg-white rounded-xl p-6 shadow-card">
               <h3 className="text-lg font-bold text-text mb-4">{results.metadata.name}</h3>
               <p className="text-text-light mb-4">{results.metadata.description}</p>
-              
+
               {/* Signal Summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-green-50 rounded-lg p-4">
@@ -448,7 +470,18 @@ const StrategyDetail = () => {
           {/* Strategy Chart */}
           {results.data && (
             <div className="bg-white rounded-xl p-6 shadow-card">
-              <h3 className="text-lg font-bold text-text mb-4">Chart Analysis</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-text">Chart Analysis</h3>
+
+                {/* Paper Trade Button */}
+                <button
+                  onClick={() => setIsTradeModalOpen(true)}
+                  className="bg-primary hover:bg-primary-dark text-white font-black py-2.5 px-6 rounded-xl transition-all active:scale-95 flex items-center space-x-2 shadow-lg"
+                >
+                  <IndianRupee className="w-4 h-4" />
+                  <span>PAPER TRADE</span>
+                </button>
+              </div>
               <StrategyChart
                 data={results.data}
                 buySignals={results.buy_signals}
@@ -457,6 +490,21 @@ const StrategyDetail = () => {
               />
             </div>
           )}
+
+          <TradeModal
+            isOpen={isTradeModalOpen}
+            onClose={() => setIsTradeModalOpen(false)}
+            symbol={symbol}
+            currentPrice={results.data[results.data.length - 1].close}
+            prediction={{
+              direction: results.signals?.[0]?.signal === 'BUY' ? 'Bullish' : 'Bearish',
+              modelName: strategy.name
+            }}
+            onSuccess={(type, quantity, symbol) => {
+              setTradeSuccess({ type, quantity, symbol })
+              setTimeout(() => setTradeSuccess(null), 8000)
+            }}
+          />
 
 
         </div>

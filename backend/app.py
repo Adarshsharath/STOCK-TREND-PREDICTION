@@ -9,6 +9,7 @@ import pandas as pd
 from datetime import timedelta, datetime
 from dotenv import load_dotenv
 import traceback
+import yfinance as yf
 
 
 # Add current directory to path
@@ -83,7 +84,11 @@ jwt = JWTManager(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 # Initialize database
-from database import init_db, add_favorite, remove_favorite, list_favorites
+from database import (
+    init_db, add_favorite, remove_favorite, list_favorites,
+    get_virtual_balance, update_virtual_balance, get_portfolio,
+    update_portfolio, record_transaction, get_transaction_history
+)
 from utils.market_snapshots import get_intraday_summary
 init_db()
 
@@ -797,40 +802,172 @@ def top_movers():
 def get_stock_price():
     """
     Get current stock price with change and percentage
-    
-    Query Parameters:
-        symbol: Stock symbol (e.g., AAPL, RELIANCE.NS)
     """
     try:
-        symbol = request.args.get('symbol')
-        if not symbol:
-            return jsonify({'error': 'Symbol parameter is required'}), 400
+        symbol = request.args.get('symbol', 'AAPL').upper()
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period='2d')
         
-        # Fetch recent data (last 2 days to calculate change)
-        df = fetch_stock_data(symbol, period='5d')
+        if df.empty:
+            return jsonify({'error': 'No data found'}), 404
         
-        if df is None or len(df) < 2:
-            return jsonify({'error': f'Unable to fetch data for {symbol}'}), 404
-        
-        # Get latest and previous close
-        current_price = float(df['close'].iloc[-1])
-        previous_close = float(df['close'].iloc[-2])
-        
-        # Calculate change
-        change = current_price - previous_close
-        change_percent = (change / previous_close) * 100
+        current_price = df['Close'].iloc[-1]
+        prev_price = df['Close'].iloc[-2] if len(df) > 1 else current_price
+        change = current_price - prev_price
+        pct_change = (change / prev_price) * 100 if prev_price != 0 else 0
         
         return jsonify({
             'symbol': symbol,
-            'price': current_price,
-            'previousClose': previous_close,
-            'change': change,
-            'changePercent': change_percent,
-            'timestamp': str(df.index[-1])
+            'price': float(current_price),
+            'change': float(change),
+            'change_percent': float(pct_change)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# --- Virtual Money (Paper Trading) Endpoints ---
+
+@app.route('/api/paper/balance', methods=['GET'])
+@jwt_required()
+def paper_balance():
+    """Get user's virtual balance"""
+    try:
+        current_user_id = get_jwt_identity()
+        balance = get_virtual_balance(current_user_id)
+        return jsonify({'balance': balance, 'currency': 'INR'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/paper/portfolio', methods=['GET'])
+@jwt_required()
+def paper_portfolio():
+    """Get user's virtual portfolio with real-time valuations"""
+    try:
+        current_user_id = get_jwt_identity()
+        portfolio = get_portfolio(current_user_id)
+        
+        # Add current prices and calculate P&L
+        enriched_portfolio = []
+        total_market_value = 0
+        total_cost_basis = 0
+        
+        for holding in portfolio:
+            symbol = holding['symbol']
+            qty = holding['quantity']
+            avg_price = holding['avg_price']
+            
+            # Fetch current price (simplified - in production use cached quotes)
+            try:
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period='1d')
+                current_price = hist['Close'].iloc[-1] if not hist.empty else avg_price
+            except:
+                current_price = avg_price
+            
+            market_value = qty * current_price
+            cost_basis = qty * avg_price
+            pnl = market_value - cost_basis
+            pnl_percent = (pnl / cost_basis * 100) if cost_basis != 0 else 0
+            
+            total_market_value += market_value
+            total_cost_basis += cost_basis
+            
+            enriched_portfolio.append({
+                'symbol': symbol,
+                'quantity': qty,
+                'avg_price': float(avg_price),
+                'current_price': float(current_price),
+                'market_value': float(market_value),
+                'pnl': float(pnl),
+                'pnl_percent': float(pnl_percent)
+            })
+            
+        return jsonify({
+            'portfolio': enriched_portfolio,
+            'summary': {
+                'total_market_value': float(total_market_value),
+                'total_cost_basis': float(total_cost_basis),
+                'total_pnl': float(total_market_value - total_cost_basis),
+                'total_pnl_percent': float(((total_market_value - total_cost_basis) / total_cost_basis * 100)) if total_cost_basis != 0 else 0
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/paper/history', methods=['GET'])
+@jwt_required()
+def paper_history():
+    """Get user's transaction history"""
+    try:
+        current_user_id = get_jwt_identity()
+        history = get_transaction_history(current_user_id)
+        return jsonify({'history': history})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/paper/trade', methods=['POST'])
+@jwt_required()
+def paper_trade():
+    """Execute a paper trade (buy or sell)"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or not all(k in data for k in ['symbol', 'type', 'quantity']):
+            return jsonify({'error': 'Missing required fields (symbol, type, quantity)'}), 400
+        
+        symbol = data['symbol'].upper()
+        trade_type = data['type'].lower() # 'buy' or 'sell'
+        quantity = int(data['quantity'])
+        strategy = data.get('strategy')
+        
+        if quantity <= 0:
+            return jsonify({'error': 'Quantity must be positive'}), 400
+            
+        if trade_type not in ['buy', 'sell']:
+            return jsonify({'error': 'Type must be buy or sell'}), 400
+            
+        # Get current price
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period='1d')
+            if hist.empty:
+                return jsonify({'error': f'Could not find data for {symbol}'}), 404
+            current_price = hist['Close'].iloc[-1]
+        except Exception as e:
+            return jsonify({'error': f'Error fetching price: {str(e)}'}), 500
+            
+        total_cost = current_price * quantity
+        current_balance = get_virtual_balance(current_user_id)
+        
+        if trade_type == 'buy':
+            if current_balance < total_cost:
+                return jsonify({'error': 'Insufficient virtual balance'}), 400
+            
+            # Update balance and portfolio
+            update_virtual_balance(current_user_id, -total_cost)
+            update_portfolio(current_user_id, symbol, quantity, current_price)
+            record_transaction(current_user_id, symbol, 'buy', quantity, current_price, strategy)
+            
+        else: # sell
+            portfolio = get_portfolio(current_user_id)
+            holding = next((h for h in portfolio if h['symbol'] == symbol), None)
+            
+            if not holding or holding['quantity'] < quantity:
+                return jsonify({'error': f'Insufficient holdings of {symbol}'}), 400
+                
+            # Update balance and portfolio
+            update_virtual_balance(current_user_id, total_cost)
+            update_portfolio(current_user_id, symbol, -quantity, current_price)
+            record_transaction(current_user_id, symbol, 'sell', quantity, current_price, strategy)
+            
+        return jsonify({
+            'message': f'Successfully {trade_type}ed {quantity} shares of {symbol}',
+            'new_balance': get_virtual_balance(current_user_id)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/api/simulator-data', methods=['GET'])
 def get_simulator_data():
     """
@@ -981,4 +1118,4 @@ def get_simulator_data():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)

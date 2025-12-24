@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Brain, Loader2, Search, ArrowLeft, Lightbulb, HelpCircle } from 'lucide-react'
+import { Brain, Loader2, Search, ArrowLeft, Lightbulb, HelpCircle, Activity, IndianRupee, TrendingUp } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../utils/api'
 import PredictionChart from '../components/PredictionChart'
@@ -10,13 +10,14 @@ import MarketSentimentPanel from '../components/MarketSentimentPanel'
 import VolatilityPredictor from '../components/VolatilityPredictor'
 import ExplainabilityPanel from '../components/ExplainabilityPanel'
 import ClassificationResult from '../components/ClassificationResult'
+import TradeModal from '../components/TradeModal'
 import { useAuth } from '../context/AuthContext'
 
 const MODELS = [
   // Regression Models (Price Prediction)
-  { 
-    id: 'lstm', 
-    name: 'LSTM', 
+  {
+    id: 'lstm',
+    name: 'LSTM',
     fullName: 'Long Short-Term Memory',
     category: 'regression',
     icon: '🧠',
@@ -27,9 +28,9 @@ const MODELS = [
     cons: 'Requires more training time',
     bestFor: 'Trending stocks, long-term predictions'
   },
-  { 
-    id: 'prophet', 
-    name: 'Prophet', 
+  {
+    id: 'prophet',
+    name: 'Prophet',
     fullName: 'Facebook Prophet',
     category: 'regression',
     icon: '📈',
@@ -40,9 +41,9 @@ const MODELS = [
     cons: 'Less accurate for volatile stocks',
     bestFor: 'Stable stocks, seasonal patterns'
   },
-  { 
-    id: 'arima', 
-    name: 'ARIMA', 
+  {
+    id: 'arima',
+    name: 'ARIMA',
     fullName: 'AutoRegressive Integrated Moving Average',
     category: 'regression',
     icon: '📊',
@@ -53,9 +54,9 @@ const MODELS = [
     cons: 'Struggles with sudden market changes',
     bestFor: 'Short-term predictions, stable markets'
   },
-  { 
-    id: 'randomforest', 
-    name: 'Random Forest', 
+  {
+    id: 'randomforest',
+    name: 'Random Forest',
     fullName: 'Random Forest Regressor',
     category: 'regression',
     icon: '🌳',
@@ -66,9 +67,9 @@ const MODELS = [
     cons: 'Can overfit on small datasets',
     bestFor: 'Medium-term predictions, volatile stocks'
   },
-  { 
-    id: 'xgboost', 
-    name: 'XGBoost', 
+  {
+    id: 'xgboost',
+    name: 'XGBoost',
     fullName: 'Extreme Gradient Boosting',
     category: 'regression',
     icon: '⚡',
@@ -79,11 +80,11 @@ const MODELS = [
     cons: 'Needs parameter tuning',
     bestFor: 'All types of stocks, high accuracy needed'
   },
-  
+
   // Classification Models (Direction Prediction)
-  { 
-    id: 'logistic_regression', 
-    name: 'Logistic Regression', 
+  {
+    id: 'logistic_regression',
+    name: 'Logistic Regression',
     fullName: 'Logistic Regression Classifier',
     category: 'classification',
     icon: '📉',
@@ -94,9 +95,9 @@ const MODELS = [
     cons: 'Lower accuracy, assumes linear relationships',
     bestFor: 'Quick predictions, understanding trends'
   },
-  { 
-    id: 'xgboost_classifier', 
-    name: 'XGBoost Classifier', 
+  {
+    id: 'xgboost_classifier',
+    name: 'XGBoost Classifier',
     fullName: 'XGBoost Direction Classifier',
     category: 'classification',
     icon: '🎯',
@@ -107,9 +108,9 @@ const MODELS = [
     cons: 'Slower than simple models',
     bestFor: 'Day trading, swing trading decisions'
   },
-  { 
-    id: 'randomforest_classifier', 
-    name: 'Random Forest Classifier', 
+  {
+    id: 'randomforest_classifier',
+    name: 'Random Forest Classifier',
     fullName: 'Random Forest Direction Classifier',
     category: 'classification',
     icon: '🌲',
@@ -120,9 +121,9 @@ const MODELS = [
     cons: 'Can be conservative',
     bestFor: 'Conservative trading, risk management'
   },
-  { 
-    id: 'lstm_classifier', 
-    name: 'LSTM Classifier', 
+  {
+    id: 'lstm_classifier',
+    name: 'LSTM Classifier',
     fullName: 'LSTM Direction Classifier',
     category: 'classification',
     icon: '🔮',
@@ -133,9 +134,9 @@ const MODELS = [
     cons: 'Requires more data and training time',
     bestFor: 'Trending stocks, pattern-based trading'
   },
-  { 
-    id: 'svm', 
-    name: 'SVM', 
+  {
+    id: 'svm',
+    name: 'SVM',
     fullName: 'Support Vector Machine',
     category: 'classification',
     icon: '🎲',
@@ -153,7 +154,7 @@ const Predictions = () => {
   const location = useLocation()
   const { experienceLevel } = useAuth()
   const fromFinance = location.state?.fromFinance || sessionStorage.getItem('returnToFinance') === 'true'
-  
+
   const [selectedModel, setSelectedModel] = useState(null)
   const [symbol, setSymbol] = useState('RELIANCE.NS')
   const [period, setPeriod] = useState('2y')
@@ -164,6 +165,8 @@ const Predictions = () => {
   const [svLoading, setSvLoading] = useState(false)
   const [showAnalyze, setShowAnalyze] = useState(false)
   const [showBeginnerGuide, setShowBeginnerGuide] = useState(true)
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false)
+  const [tradeSuccess, setTradeSuccess] = useState(null)
 
   const isBeginner = experienceLevel === 'beginner'
 
@@ -271,10 +274,10 @@ const Predictions = () => {
           <span>Back to Smart Start</span>
         </button>
       )}
-      
+
       {/* Weather Alerts */}
       <WeatherAlerts />
-      
+
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-8">
         <div className="flex items-center space-x-3 mb-4">
@@ -299,11 +302,10 @@ const Predictions = () => {
                 <button
                   key={model.id}
                   onClick={() => handleModelSelect(model.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${
-                    selectedModel === model.id
-                      ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
-                      : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
-                  }`}
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${selectedModel === model.id
+                    ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
+                    : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-4xl">{model.icon}</span>
@@ -333,11 +335,10 @@ const Predictions = () => {
                 <button
                   key={model.id}
                   onClick={() => handleModelSelect(model.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${
-                    selectedModel === model.id
-                      ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
-                      : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
-                  }`}
+                  className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg dark:hover:shadow-neon hover:scale-105 ${selectedModel === model.id
+                    ? 'border-primary bg-blue-50 dark:bg-blue-900/30 dark:border-neon-blue'
+                    : 'border-border dark:border-dark-border bg-white dark:bg-dark-bg-elevated hover:border-primary dark:hover:border-neon-purple'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-4xl">{model.icon}</span>
@@ -366,7 +367,7 @@ const Predictions = () => {
           {/* Back button and selected model info */}
           <div className="bg-white rounded-xl p-6 shadow-card">
             <button
-              onClick={() => {setShowAnalyze(false); setSelectedModel(null); setData(null); setError(null);}}
+              onClick={() => { setShowAnalyze(false); setSelectedModel(null); setData(null); setError(null); }}
               className="text-primary hover:text-primary-dark mb-4 font-medium"
             >
               ← Back to Model Selection
@@ -445,7 +446,7 @@ const Predictions = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <MarketSentimentPanel sentimentData={sentimentVolatility?.sentiment} />
         <VolatilityPredictor volatilityData={sentimentVolatility?.volatility} />
-        <ModelComparison 
+        <ModelComparison
           currentModel={selectedModel}
           metrics={data?.metrics || null}
         />
@@ -465,6 +466,26 @@ const Predictions = () => {
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-neon-pink rounded-xl p-4">
           <p className="text-red-800 dark:text-red-300 font-medium">{error}</p>
           <p className="text-red-600 dark:text-red-400 text-sm mt-2">Try ARIMA model (fastest) or a shorter period, or check if the backend is running.</p>
+        </div>
+      )}
+
+      {/* Success Notification */}
+      {tradeSuccess && (
+        <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4 rounded-xl flex items-center justify-between mb-6 animate-bounce shadow-lg">
+          <div className="flex items-center space-x-3">
+            <div className="bg-green-500 p-1.5 rounded-full">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <p className="text-green-800 dark:text-green-300 font-bold">
+              Trade executed successfully! {tradeSuccess.quantity} shares of {tradeSuccess.symbol} {tradeSuccess.type}ed.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/virtual-money')}
+            className="text-green-700 dark:text-green-400 font-black underline underline-offset-4"
+          >
+            View Portfolio
+          </button>
         </div>
       )}
 
@@ -494,9 +515,42 @@ const Predictions = () => {
                   description={data.metadata.description}
                   parameters={data.metadata.parameters}
                 />
+
+                {/* Paper Trade Integration */}
+                <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 text-white shadow-lg space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <IndianRupee className="w-6 h-6" />
+                    <h3 className="text-xl font-black">Trade with Virtual Money</h3>
+                  </div>
+                  <p className="text-white/80 text-sm">
+                    Confident in this prediction? Use your virtual balance to test your strategy without risk.
+                  </p>
+                  <button
+                    onClick={() => setIsTradeModalOpen(true)}
+                    className="w-full bg-white text-primary font-black py-3 rounded-xl hover:bg-gray-100 transition-all active:scale-95 flex items-center justify-center space-x-2 shadow-lg"
+                  >
+                    <Activity className="w-5 h-5" />
+                    <span>EXECUTE PAPER TRADE</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
+
+          <TradeModal
+            isOpen={isTradeModalOpen}
+            onClose={() => setIsTradeModalOpen(false)}
+            symbol={symbol}
+            currentPrice={data.predictions[0]} // Use current price from data
+            prediction={{
+              direction: data.trend?.direction || (data.predictions[data.predictions.length - 1] > data.predictions[0] ? 'Bullish' : 'Bearish'),
+              modelName: data.metadata.name
+            }}
+            onSuccess={(type, quantity, symbol) => {
+              setTradeSuccess({ type, quantity, symbol })
+              setTimeout(() => setTradeSuccess(null), 8000)
+            }}
+          />
         </>
       )}
     </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Play, Pause, RotateCcw, Bell, TrendingUp, TrendingDown, Clock, Zap, Settings } from 'lucide-react'
+import { Play, Pause, RotateCcw, Bell, TrendingUp, TrendingDown, Clock, Zap, Settings, IndianRupee } from 'lucide-react'
 import Plot from 'react-plotly.js'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
+import TradeModal from '../components/TradeModal'
 
 const LiveSimulator = () => {
   const [symbol, setSymbol] = useState('AAPL')
@@ -18,6 +19,8 @@ const LiveSimulator = () => {
   const [error, setError] = useState(null)
   const intervalRef = useRef(null)
   const notificationIdRef = useRef(0)
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false)
+  const [tradeSuccess, setTradeSuccess] = useState(null)
 
   const SUGGESTED_STOCKS = [
     // US Tech Giants
@@ -29,7 +32,7 @@ const LiveSimulator = () => {
     { symbol: 'TSLA', name: 'Tesla' },
     { symbol: 'META', name: 'Meta (Facebook)' },
     { symbol: 'NFLX', name: 'Netflix' },
-    
+
     // Indian Large Caps
     { symbol: 'RELIANCE.NS', name: 'Reliance Industries' },
     { symbol: 'TCS.NS', name: 'Tata Consultancy Services' },
@@ -39,7 +42,7 @@ const LiveSimulator = () => {
     { symbol: 'WIPRO.NS', name: 'Wipro' },
     { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel' },
     { symbol: 'ITC.NS', name: 'ITC Limited' },
-    
+
     // More US Stocks
     { symbol: 'AMD', name: 'AMD' },
     { symbol: 'INTC', name: 'Intel' },
@@ -72,7 +75,7 @@ const LiveSimulator = () => {
   const fetchHistoricalData = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       // Fetch intraday data for realistic second-by-second simulation
       const response = await axios.get('/api/simulator-data', {
@@ -82,7 +85,7 @@ const LiveSimulator = () => {
         },
         timeout: 30000
       })
-      
+
       if (response.data && response.data.data && response.data.data.length > 0) {
         setHistoricalData(response.data.data)
         setLiveData([])
@@ -125,7 +128,7 @@ const LiveSimulator = () => {
     const notification = {
       id,
       type: signal.type,
-      message: signal.type === 'BUY' 
+      message: signal.type === 'BUY'
         ? `🟢 BUY Signal detected for ${symbol} at ₹${signal.price.toFixed(2)}`
         : `🔴 SELL Signal detected for ${symbol} at ₹${signal.price.toFixed(2)}`,
       time: signal.time
@@ -151,11 +154,11 @@ const LiveSimulator = () => {
   useEffect(() => {
     if (isPlaying && historicalData.length > 0 && currentIndex < historicalData.length) {
       const interval = 1000 / speed // Adjust speed
-      
+
       intervalRef.current = setInterval(() => {
         setCurrentIndex(prevIndex => {
           const nextIndex = prevIndex + 1
-          
+
           if (nextIndex >= historicalData.length) {
             setIsPlaying(false)
             return prevIndex
@@ -163,10 +166,10 @@ const LiveSimulator = () => {
 
           const newDataPoint = historicalData[nextIndex]
           setLiveData(prev => [...prev, newDataPoint])
-          
+
           // Check for signals
           checkForSignals(newDataPoint, nextIndex)
-          
+
           return nextIndex
         })
       }, interval)
@@ -225,6 +228,26 @@ const LiveSimulator = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Notification */}
+      {tradeSuccess && (
+        <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4 rounded-xl flex items-center justify-between mb-0 animate-bounce shadow-lg">
+          <div className="flex items-center space-x-3">
+            <div className="bg-green-500 p-1.5 rounded-full">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <p className="text-green-800 dark:text-green-300 font-bold">
+              Trade executed successfully! {tradeSuccess.quantity} shares of {tradeSuccess.symbol} {tradeSuccess.type}ed.
+            </p>
+          </div>
+          <button
+            onClick={() => window.open('/virtual-money', '_blank')}
+            className="text-green-700 dark:text-green-400 font-black underline underline-offset-4"
+          >
+            View Portfolio
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl p-8">
         <div className="flex items-center justify-between">
@@ -302,11 +325,10 @@ const LiveSimulator = () => {
                 <button
                   key={opt.value}
                   onClick={() => handleSpeedChange(opt.value)}
-                  className={`flex-1 px-3 py-2 rounded-lg font-semibold transition ${
-                    speed === opt.value
+                  className={`flex-1 px-3 py-2 rounded-lg font-semibold transition ${speed === opt.value
                       ? 'bg-primary text-white'
                       : 'bg-gray-100 text-text-light hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {opt.label}
                 </button>
@@ -323,11 +345,10 @@ const LiveSimulator = () => {
               <button
                 onClick={handlePlayPause}
                 disabled={loading || !historicalData.length}
-                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-semibold transition ${
-                  isPlaying
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-semibold transition ${isPlaying
                     ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
                     : 'bg-green-500 hover:bg-green-600 text-white'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                 <span>{isPlaying ? 'Pause' : 'Play'}</span>
@@ -413,9 +434,8 @@ const LiveSimulator = () => {
               <p className="text-4xl font-bold text-text">₹{currentPrice.toFixed(2)}</p>
             </div>
             <div className="text-right">
-              <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg ${
-                isPositive ? 'bg-green-100' : 'bg-red-100'
-              }`}>
+              <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg ${isPositive ? 'bg-green-100' : 'bg-red-100'
+                }`}>
                 {isPositive ? (
                   <TrendingUp className="w-6 h-6 text-green-600" />
                 ) : (
@@ -443,7 +463,36 @@ const LiveSimulator = () => {
                 </div>
               </div>
             </div>
+
+            {/* Paper Trade Button */}
+            <div className="pl-6 border-l border-border dark:border-dark-border">
+              <button
+                onClick={() => setIsTradeModalOpen(true)}
+                className="bg-primary hover:bg-primary-dark text-white font-black py-4 px-8 rounded-2xl transition-all active:scale-95 flex items-center space-x-3 shadow-lg hover:shadow-primary/40"
+              >
+                <IndianRupee className="w-6 h-6" />
+                <div className="text-left">
+                  <div className="text-xs opacity-80 uppercase leading-none mb-1">Trade Live</div>
+                  <div className="text-lg">PAPER TRADE</div>
+                </div>
+              </button>
+            </div>
           </div>
+
+          <TradeModal
+            isOpen={isTradeModalOpen}
+            onClose={() => setIsTradeModalOpen(false)}
+            symbol={symbol}
+            currentPrice={currentPrice}
+            prediction={{
+              direction: liveData[liveData.length - 1]?.signal === 1 ? 'Bullish' : (liveData[liveData.length - 1]?.signal === -1 ? 'Bearish' : 'Neutral'),
+              modelName: `${strategy} Simulator`
+            }}
+            onSuccess={(type, quantity, symbol) => {
+              setTradeSuccess({ type, quantity, symbol })
+              setTimeout(() => setTradeSuccess(null), 8000)
+            }}
+          />
         </div>
       )}
 
@@ -536,26 +585,22 @@ const LiveSimulator = () => {
               initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 100 }}
-              className={`rounded-xl p-4 shadow-lg border-l-4 ${
-                notification.type === 'BUY'
+              className={`rounded-xl p-4 shadow-lg border-l-4 ${notification.type === 'BUY'
                   ? 'bg-green-50 border-green-500'
                   : 'bg-red-50 border-red-500'
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3">
-                  <Bell className={`w-5 h-5 mt-0.5 ${
-                    notification.type === 'BUY' ? 'text-green-600' : 'text-red-600'
-                  }`} />
+                  <Bell className={`w-5 h-5 mt-0.5 ${notification.type === 'BUY' ? 'text-green-600' : 'text-red-600'
+                    }`} />
                   <div>
-                    <p className={`font-bold text-sm mb-1 ${
-                      notification.type === 'BUY' ? 'text-green-900' : 'text-red-900'
-                    }`}>
+                    <p className={`font-bold text-sm mb-1 ${notification.type === 'BUY' ? 'text-green-900' : 'text-red-900'
+                      }`}>
                       {notification.type} Signal Detected!
                     </p>
-                    <p className={`text-sm ${
-                      notification.type === 'BUY' ? 'text-green-700' : 'text-red-700'
-                    }`}>
+                    <p className={`text-sm ${notification.type === 'BUY' ? 'text-green-700' : 'text-red-700'
+                      }`}>
                       {notification.message}
                     </p>
                   </div>

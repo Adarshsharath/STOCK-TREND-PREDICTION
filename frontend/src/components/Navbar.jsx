@@ -12,7 +12,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const isActive = (path) => location.pathname === path
-  
+
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
   const navLinks = [
@@ -21,6 +21,7 @@ const Navbar = () => {
     { path: '/live-strategy', label: 'Live Strategy', icon: TrendingUp },
     { path: '/strategies', label: 'Strategies', icon: LineChart },
     { path: '/predictions', label: 'Predictions', icon: Brain },
+    { path: '/virtual-money', label: 'Virtual Money', icon: IndianRupee },
     { path: '/favorites', label: 'Favorites', icon: Star },
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/about', label: 'About', icon: Info }
@@ -51,18 +52,17 @@ const Navbar = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm ${
-                    isActive(link.path)
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm ${isActive(link.path)
                       ? 'text-primary dark:text-neon-purple bg-primary bg-opacity-10 dark:bg-dark-bg-elevated dark:shadow-neon'
                       : 'text-text-light dark:text-dark-text-secondary hover:text-primary dark:hover:text-neon-purple hover:bg-background-dark dark:hover:bg-dark-bg-elevated hover:scale-105'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{link.label}</span>
                 </Link>
               )
             })}
-            
+
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
@@ -101,7 +101,7 @@ const Navbar = () => {
               </Link>
             )}
           </div>
-          
+
           {/* Mobile Menu Button */}
           <div className="flex lg:hidden items-center space-x-2">
             <button
@@ -129,7 +129,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -148,18 +148,17 @@ const Navbar = () => {
                     key={link.path}
                     to={link.path}
                     onClick={closeMobileMenu}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all ${
-                      isActive(link.path)
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all ${isActive(link.path)
                         ? 'text-primary dark:text-neon-purple bg-primary bg-opacity-10 dark:bg-dark-bg-elevated'
                         : 'text-text dark:text-dark-text hover:bg-gray-100 dark:hover:bg-dark-bg-elevated'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{link.label}</span>
                   </Link>
                 )
               })}
-              
+
               {/* Mobile User Section */}
               <div className="pt-4 border-t border-border dark:border-dark-border">
                 {isAuthenticated ? (

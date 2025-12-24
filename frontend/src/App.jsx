@@ -14,6 +14,7 @@ import StrategyLearn from './pages/StrategyLearn'
 import LiveStrategy from './pages/LiveStrategy'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import VirtualPortfolio from './pages/VirtualPortfolio'
 import Chatbot from './components/Chatbot'
 import ProtectedRoute from './components/ProtectedRoute'
 import { ChatProvider } from './context/ChatContext'
@@ -23,7 +24,7 @@ import { AuthProvider } from './context/AuthContext'
 // Component to handle 404 redirects
 function RedirectHandler() {
   const navigate = useNavigate()
-  
+
   useEffect(() => {
     const redirectPath = sessionStorage.getItem('redirectPath')
     if (redirectPath) {
@@ -31,7 +32,7 @@ function RedirectHandler() {
       navigate(redirectPath, { replace: true })
     }
   }, [navigate])
-  
+
   return null
 }
 
@@ -47,7 +48,7 @@ function App() {
                 {/* Public routes - no navbar */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
-                
+
                 {/* Routes with navbar */}
                 <Route path="/*" element={
                   <>
@@ -68,11 +69,16 @@ function App() {
                             <Favorites />
                           </ProtectedRoute>
                         } />
-                        
+
                         {/* Protected route */}
                         <Route path="/dashboard" element={
                           <ProtectedRoute>
                             <Dashboard />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/virtual-money" element={
+                          <ProtectedRoute>
+                            <VirtualPortfolio />
                           </ProtectedRoute>
                         } />
                       </Routes>
