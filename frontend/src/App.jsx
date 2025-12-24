@@ -17,6 +17,8 @@ import Signup from './pages/Signup'
 import VirtualPortfolio from './pages/VirtualPortfolio'
 import Chatbot from './components/Chatbot'
 import ProtectedRoute from './components/ProtectedRoute'
+import AstroPopup from './components/AstroPopup'
+import WhalePopup from './components/WhalePopup'
 import { ChatProvider } from './context/ChatContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
@@ -53,6 +55,8 @@ function App() {
                 <Route path="/*" element={
                   <>
                     <Navbar />
+                    <AstroPopup />
+                    <WhalePopup />
                     <main className="container mx-auto px-6 py-8">
                       <Routes>
                         <Route path="/" element={<Home />} />
