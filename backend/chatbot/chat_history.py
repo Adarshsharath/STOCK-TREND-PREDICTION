@@ -1,129 +1,200 @@
-import json
-import os
 from datetime import datetime
 from typing import List, Dict, Optional
-import uuid
+from bson import ObjectId
 
-# File-based storage for chat history
-CHAT_HISTORY_DIR = os.path.join(os.path.dirname(__file__), 'chat_histories')
+# Import MongoDB connection from database module
+from database import get_db
 
-def ensure_history_dir():
-    """Ensure the chat history directory exists"""
-    if not os.path.exists(CHAT_HISTORY_DIR):
-        os.makedirs(CHAT_HISTORY_DIR)
-
-def create_new_conversation(title: str = "New Conversation") -> str:
-    """Create a new conversation and return its ID"""
-    ensure_history_dir()
-    
-    conversation_id = str(uuid.uuid4())
-    conversation = {
-        'id': conversation_id,
-        'title': title,
-        'created_at': datetime.now().isoformat(),
-        'updated_at': datetime.now().isoformat(),
-        'messages': []
-    }
-    
-    file_path = os.path.join(CHAT_HISTORY_DIR, f'{conversation_id}.json')
-    with open(file_path, 'w') as f:
-        json.dump(conversation, f, indent=2)
-    
-    return conversation_id
-
-def save_message(conversation_id: str, role: str, content: str):
-    """Save a message to a conversation"""
-    ensure_history_dir()
-    file_path = os.path.join(CHAT_HISTORY_DIR, f'{conversation_id}.json')
-    
-    if not os.path.exists(file_path):
-        # Create new conversation if doesn't exist
+def create_new_conversation(user_id: str, title: str = "New Conversation") -> str:
+    """Create a new conversation for a user and return its ID"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
         conversation = {
-            'id': conversation_id,
-            'title': content[:50] + '...' if len(content) > 50 else content,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat(),
+            'user_id': user_id,
+            'title': title,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
             'messages': []
         }
-    else:
-        with open(file_path, 'r') as f:
-            conversation = json.load(f)
-    
-    # Add new message
-    message = {
-        'role': role,
-        'content': content,
-        'timestamp': datetime.now().isoformat()
-    }
-    conversation['messages'].append(message)
-    conversation['updated_at'] = datetime.now().isoformat()
-    
-    # Update title with first user message if still default
-    if conversation['title'] == "New Conversation" and role == 'user':
-        conversation['title'] = content[:50] + '...' if len(content) > 50 else content
-    
-    with open(file_path, 'w') as f:
-        json.dump(conversation, f, indent=2)
-
-def get_conversation(conversation_id: str) -> Optional[Dict]:
-    """Get a conversation by ID"""
-    ensure_history_dir()
-    file_path = os.path.join(CHAT_HISTORY_DIR, f'{conversation_id}.json')
-    
-    if not os.path.exists(file_path):
+        
+        result = conversations.insert_one(conversation)
+        return str(result.inserted_id)
+    except Exception as e:
+        print(f"Error creating conversation: {e}")
         return None
-    
-    with open(file_path, 'r') as f:
-        return json.load(f)
 
-def list_conversations() -> List[Dict]:
-    """List all conversations"""
-    ensure_history_dir()
-    conversations = []
-    
-    for filename in os.listdir(CHAT_HISTORY_DIR):
-        if filename.endswith('.json'):
-            file_path = os.path.join(CHAT_HISTORY_DIR, filename)
-            with open(file_path, 'r') as f:
-                conv = json.load(f)
-                # Return summary without full messages
-                conversations.append({
-                    'id': conv['id'],
-                    'title': conv['title'],
-                    'created_at': conv['created_at'],
-                    'updated_at': conv['updated_at'],
-                    'message_count': len(conv['messages'])
-                })
-    
-    # Sort by updated_at descending
-    conversations.sort(key=lambda x: x['updated_at'], reverse=True)
-    return conversations
-
-def delete_conversation(conversation_id: str) -> bool:
-    """Delete a conversation"""
-    ensure_history_dir()
-    file_path = os.path.join(CHAT_HISTORY_DIR, f'{conversation_id}.json')
-    
-    if os.path.exists(file_path):
-        os.remove(file_path)
+def save_message(conversation_id: str, user_id: str, role: str, content: str):
+    """Save a message to a conversation (with ownership verification)"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string IDs to ObjectId
+        if isinstance(conversation_id, str):
+            conversation_id = ObjectId(conversation_id)
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        # Find conversation and verify ownership
+        conversation = conversations.find_one({
+            '_id': conversation_id,
+            'user_id': user_id
+        })
+        
+        if not conversation:
+            # Create new conversation if doesn't exist
+            conversation = {
+                'user_id': user_id,
+                'title': content[:50] + '...' if len(content) > 50 else content,
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow(),
+                'messages': []
+            }
+        
+        # Add new message
+        message = {
+            'role': role,
+            'content': content,
+            'timestamp': datetime.utcnow()
+        }
+        
+        # Update title with first user message if still default
+        update_data = {
+            '$push': {'messages': message},
+            '$set': {'updated_at': datetime.utcnow()}
+        }
+        
+        if conversation.get('title') == "New Conversation" and role == 'user':
+            update_data['$set']['title'] = content[:50] + '...' if len(content) > 50 else content
+        
+        conversations.update_one(
+            {'_id': conversation_id, 'user_id': user_id},
+            update_data,
+            upsert=True
+        )
+        
         return True
-    return False
-
-def update_conversation_title(conversation_id: str, new_title: str) -> bool:
-    """Update conversation title"""
-    ensure_history_dir()
-    file_path = os.path.join(CHAT_HISTORY_DIR, f'{conversation_id}.json')
-    
-    if not os.path.exists(file_path):
+    except Exception as e:
+        print(f"Error saving message: {e}")
         return False
-    
-    with open(file_path, 'r') as f:
-        conversation = json.load(f)
-    
-    conversation['title'] = new_title
-    conversation['updated_at'] = datetime.now().isoformat()
-    
-    with open(file_path, 'w') as f:
-        json.dump(conversation, f, indent=2)
-    
-    return True
+
+def get_conversation(conversation_id: str, user_id: str) -> Optional[Dict]:
+    """Get a conversation by ID (with ownership verification)"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string IDs to ObjectId
+        if isinstance(conversation_id, str):
+            conversation_id = ObjectId(conversation_id)
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        conversation = conversations.find_one({
+            '_id': conversation_id,
+            'user_id': user_id
+        })
+        
+        if not conversation:
+            return None
+        
+        # Convert ObjectIds to strings for JSON serialization
+        return {
+            'id': str(conversation['_id']),
+            'title': conversation['title'],
+            'created_at': conversation['created_at'].isoformat(),
+            'updated_at': conversation['updated_at'].isoformat(),
+            'messages': [
+                {
+                    'role': msg['role'],
+                    'content': msg['content'],
+                    'timestamp': msg['timestamp'].isoformat()
+                }
+                for msg in conversation.get('messages', [])
+            ]
+        }
+    except Exception as e:
+        print(f"Error getting conversation: {e}")
+        return None
+
+def list_conversations(user_id: str) -> List[Dict]:
+    """List all conversations for a user"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        cursor = conversations.find({'user_id': user_id}).sort('updated_at', -1)
+        
+        results = []
+        for conv in cursor:
+            results.append({
+                'id': str(conv['_id']),
+                'title': conv['title'],
+                'created_at': conv['created_at'].isoformat(),
+                'updated_at': conv['updated_at'].isoformat(),
+                'message_count': len(conv.get('messages', []))
+            })
+        
+        return results
+    except Exception as e:
+        print(f"Error listing conversations: {e}")
+        return []
+
+def delete_conversation(conversation_id: str, user_id: str) -> bool:
+    """Delete a conversation (with ownership verification)"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string IDs to ObjectId
+        if isinstance(conversation_id, str):
+            conversation_id = ObjectId(conversation_id)
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        result = conversations.delete_one({
+            '_id': conversation_id,
+            'user_id': user_id
+        })
+        
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error deleting conversation: {e}")
+        return False
+
+def update_conversation_title(conversation_id: str, user_id: str, new_title: str) -> bool:
+    """Update conversation title (with ownership verification)"""
+    try:
+        db = get_db()
+        conversations = db.conversations
+        
+        # Convert string IDs to ObjectId
+        if isinstance(conversation_id, str):
+            conversation_id = ObjectId(conversation_id)
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        result = conversations.update_one(
+            {'_id': conversation_id, 'user_id': user_id},
+            {
+                '$set': {
+                    'title': new_title,
+                    'updated_at': datetime.utcnow()
+                }
+            }
+        )
+        
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error updating conversation title: {e}")
+        return False

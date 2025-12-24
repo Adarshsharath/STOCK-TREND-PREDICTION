@@ -386,7 +386,7 @@ def get_trading_signal():
 def get_favorites():
     """Get the current user's favorite symbols"""
     try:
-        current_user_id = int(get_jwt_identity())
+        current_user_id = get_jwt_identity()
         items = list_favorites(current_user_id)
         if isinstance(items, dict) and items.get('error'):
             return jsonify({'error': items['error']}), 500
@@ -404,7 +404,7 @@ def add_favorite_symbol():
         display_name = data.get('display_name')
         if not symbol:
             return jsonify({'error': 'Symbol is required'}), 400
-        current_user_id = int(get_jwt_identity())
+        current_user_id = get_jwt_identity()
         # Validate symbol has data
         try:
             df_check = fetch_stock_data(symbol, period='5d', interval='1d')
@@ -427,7 +427,7 @@ def add_favorite_symbol():
 def delete_favorite_symbol(symbol):
     """Remove a symbol from the current user's favorites"""
     try:
-        current_user_id = int(get_jwt_identity())
+        current_user_id = get_jwt_identity()
         result = remove_favorite(current_user_id, (symbol or '').upper())
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Failed to remove favorite')}), 404
@@ -443,7 +443,7 @@ def delete_favorite_symbol(symbol):
 def favorites_summary():
     """Get intraday summary for current user's favorite symbols"""
     try:
-        current_user_id = int(get_jwt_identity())
+        current_user_id = get_jwt_identity()
         items = list_favorites(current_user_id)
         if isinstance(items, dict) and items.get('error'):
             return jsonify({'error': items['error']}), 500
@@ -507,9 +507,13 @@ def get_prediction():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/chatbot', methods=['POST'])
+@jwt_required()
 def chatbot():
     """
-    Chat with FinSight AI
+    Chat with FinSight AI (requires authentication)
+    
+    Headers:
+        Authorization: Bearer <token>
     
     Request Body:
         message: User's message
@@ -517,6 +521,7 @@ def chatbot():
         conversation_history: Previous conversation (optional)
     """
     try:
+        current_user_id = get_jwt_identity()
         data = request.get_json()
         
         if not data or 'message' not in data:
@@ -528,17 +533,17 @@ def chatbot():
         
         # Create new conversation if ID not provided
         if not conversation_id:
-            conversation_id = create_new_conversation()
+            conversation_id = create_new_conversation(current_user_id)
         
         # Save user message
-        save_message(conversation_id, 'user', user_message)
+        save_message(conversation_id, current_user_id, 'user', user_message)
         
         # Get response from Perplexity
         result = chat_with_perplexity(user_message, conversation_history)
         
         # Save assistant response if successful
         if not result.get('error'):
-            save_message(conversation_id, 'assistant', result['response'])
+            save_message(conversation_id, current_user_id, 'assistant', result['response'])
         
         # Add conversation_id to result
         result['conversation_id'] = conversation_id
@@ -549,19 +554,23 @@ def chatbot():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations', methods=['GET'])
+@jwt_required()
 def get_conversations():
-    """Get all conversations"""
+    """Get all conversations for current user"""
     try:
-        conversations = list_conversations()
+        current_user_id = get_jwt_identity()
+        conversations = list_conversations(current_user_id)
         return jsonify({'conversations': conversations})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations/<conversation_id>', methods=['GET'])
+@jwt_required()
 def get_conversation_by_id(conversation_id):
-    """Get a specific conversation"""
+    """Get a specific conversation (with ownership verification)"""
     try:
-        conversation = get_conversation(conversation_id)
+        current_user_id = get_jwt_identity()
+        conversation = get_conversation(conversation_id, current_user_id)
         if not conversation:
             return jsonify({'error': 'Conversation not found'}), 404
         return jsonify(conversation)
@@ -569,10 +578,12 @@ def get_conversation_by_id(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
+@jwt_required()
 def delete_conversation_by_id(conversation_id):
-    """Delete a conversation"""
+    """Delete a conversation (with ownership verification)"""
     try:
-        success = delete_conversation(conversation_id)
+        current_user_id = get_jwt_identity()
+        success = delete_conversation(conversation_id, current_user_id)
         if success:
             return jsonify({'message': 'Conversation deleted successfully'})
         return jsonify({'error': 'Conversation not found'}), 404
@@ -580,14 +591,16 @@ def delete_conversation_by_id(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations/<conversation_id>/title', methods=['PUT'])
+@jwt_required()
 def update_conversation_title_route(conversation_id):
-    """Update conversation title"""
+    """Update conversation title (with ownership verification)"""
     try:
+        current_user_id = get_jwt_identity()
         data = request.get_json()
         if not data or 'title' not in data:
             return jsonify({'error': 'Title is required'}), 400
         
-        success = update_conversation_title(conversation_id, data['title'])
+        success = update_conversation_title(conversation_id, current_user_id, data['title'])
         if success:
             return jsonify({'message': 'Title updated successfully'})
         return jsonify({'error': 'Conversation not found'}), 404
@@ -595,10 +608,12 @@ def update_conversation_title_route(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations/new', methods=['POST'])
+@jwt_required()
 def create_conversation():
-    """Create a new conversation"""
+    """Create a new conversation for current user"""
     try:
-        conversation_id = create_new_conversation()
+        current_user_id = get_jwt_identity()
+        conversation_id = create_new_conversation(current_user_id)
         return jsonify({'conversation_id': conversation_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

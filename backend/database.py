@@ -1,56 +1,56 @@
-import sqlite3
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.errors import DuplicateKeyError
 import os
 import bcrypt
 from datetime import datetime
+from dotenv import load_dotenv
+from bson import ObjectId
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'finsight.db')
+# Load environment variables
+load_dotenv()
 
-def get_db_connection():
-    """Create and return a database connection"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Enable column access by name
-    return conn
+# MongoDB Configuration
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+MONGODB_DB = os.getenv('MONGODB_DB', 'finsight_ai')
+
+# MongoDB Client (singleton)
+_client = None
+_db = None
+
+def get_db():
+    """Get MongoDB database instance"""
+    global _client, _db
+    
+    if _db is None:
+        _client = MongoClient(MONGODB_URI)
+        _db = _client[MONGODB_DB]
+    
+    return _db
 
 def init_db():
-    """Initialize the database with required tables"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Create users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            experience_level TEXT DEFAULT 'beginner',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Add experience_level column if it doesn't exist (for existing databases)
+    """Initialize the database with required collections and indexes"""
     try:
-        cursor.execute('ALTER TABLE users ADD COLUMN experience_level TEXT DEFAULT "beginner"')
-    except sqlite3.OperationalError:
-        # Column already exists
-        pass
-    
-    # Create favorites table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS favorites (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            symbol TEXT NOT NULL,
-            display_name TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, symbol),
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    print("Database initialized successfully!")
+        db = get_db()
+        
+        # Create users collection with unique indexes
+        users = db.users
+        users.create_index([("username", ASCENDING)], unique=True)
+        users.create_index([("email", ASCENDING)], unique=True)
+        
+        # Create favorites collection with compound unique index
+        favorites = db.favorites
+        favorites.create_index([("user_id", ASCENDING), ("symbol", ASCENDING)], unique=True)
+        favorites.create_index([("user_id", ASCENDING)])
+        
+        # Create conversations collection with index on user_id
+        conversations = db.conversations
+        conversations.create_index([("user_id", ASCENDING)])
+        
+        print("MongoDB database initialized successfully!")
+        return True
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        return False
 
 def create_user(username, email, password):
     """
@@ -68,17 +68,19 @@ def create_user(username, email, password):
         # Hash the password
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        db = get_db()
+        users = db.users
         
-        cursor.execute(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            (username, email, hashed_password)
-        )
+        user_doc = {
+            'username': username,
+            'email': email,
+            'password': hashed_password,
+            'experience_level': 'beginner',
+            'created_at': datetime.utcnow()
+        }
         
-        conn.commit()
-        user_id = cursor.lastrowid
-        conn.close()
+        result = users.insert_one(user_doc)
+        user_id = str(result.inserted_id)
         
         return {
             'success': True,
@@ -90,7 +92,8 @@ def create_user(username, email, password):
             }
         }
     
-    except sqlite3.IntegrityError as e:
+    except DuplicateKeyError as e:
+        # Check which field caused the duplicate
         if 'username' in str(e):
             return {'success': False, 'error': 'Username already exists'}
         elif 'email' in str(e):
@@ -113,21 +116,18 @@ def verify_user(username, password):
         dict: User data if valid, None otherwise
     """
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        db = get_db()
+        users = db.users
         
         # Check if username is an email
         if '@' in username:
-            cursor.execute('SELECT * FROM users WHERE email = ?', (username,))
+            user = users.find_one({'email': username})
         else:
-            cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-        
-        user = cursor.fetchone()
-        conn.close()
+            user = users.find_one({'username': username})
         
         if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
             return {
-                'id': user['id'],
+                'id': str(user['_id']),
                 'username': user['username'],
                 'email': user['email'],
                 'experience_level': user.get('experience_level', 'beginner')
@@ -142,16 +142,18 @@ def verify_user(username, password):
 def get_user_by_id(user_id):
     """Get user by ID"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        db = get_db()
+        users = db.users
         
-        cursor.execute('SELECT id, username, email, experience_level FROM users WHERE id = ?', (user_id,))
-        user = cursor.fetchone()
-        conn.close()
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        user = users.find_one({'_id': user_id})
         
         if user:
             return {
-                'id': user['id'],
+                'id': str(user['_id']),
                 'username': user['username'],
                 'email': user['email'],
                 'experience_level': user.get('experience_level', 'beginner')
@@ -169,14 +171,28 @@ def add_favorite(user_id, symbol, display_name=None):
         symbol = (symbol or '').strip().upper()
         if not symbol:
             return {'success': False, 'error': 'Symbol is required'}
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'INSERT OR IGNORE INTO favorites (user_id, symbol, display_name) VALUES (?, ?, ?)',
-            (user_id, symbol, display_name)
+        
+        db = get_db()
+        favorites = db.favorites
+        
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        favorite_doc = {
+            'user_id': user_id,
+            'symbol': symbol,
+            'display_name': display_name,
+            'created_at': datetime.utcnow()
+        }
+        
+        # Use update_one with upsert to handle duplicates gracefully
+        favorites.update_one(
+            {'user_id': user_id, 'symbol': symbol},
+            {'$setOnInsert': favorite_doc},
+            upsert=True
         )
-        conn.commit()
-        conn.close()
+        
         return {'success': True}
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -185,17 +201,19 @@ def remove_favorite(user_id, symbol):
     """Remove a favorite symbol for a user"""
     try:
         symbol = (symbol or '').strip().upper()
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'DELETE FROM favorites WHERE user_id = ? AND symbol = ?',
-            (user_id, symbol)
-        )
-        conn.commit()
-        changes = cursor.rowcount
-        conn.close()
-        if changes == 0:
+        
+        db = get_db()
+        favorites = db.favorites
+        
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        result = favorites.delete_one({'user_id': user_id, 'symbol': symbol})
+        
+        if result.deleted_count == 0:
             return {'success': False, 'error': 'Favorite not found'}
+        
         return {'success': True}
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -203,21 +221,24 @@ def remove_favorite(user_id, symbol):
 def list_favorites(user_id):
     """List favorites for a user"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT symbol, COALESCE(display_name, symbol) as display_name, created_at FROM favorites WHERE user_id = ? ORDER BY created_at DESC',
-            (user_id,)
-        )
-        rows = cursor.fetchall()
-        conn.close()
-        return [
-            {
-                'symbol': row['symbol'],
-                'display_name': row['display_name'],
-                'created_at': row['created_at']
-            } for row in rows
-        ]
+        db = get_db()
+        favorites = db.favorites
+        
+        # Convert string ID to ObjectId
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        cursor = favorites.find({'user_id': user_id}).sort('created_at', DESCENDING)
+        
+        results = []
+        for fav in cursor:
+            results.append({
+                'symbol': fav['symbol'],
+                'display_name': fav.get('display_name', fav['symbol']),
+                'created_at': fav['created_at'].isoformat()
+            })
+        
+        return results
     except Exception as e:
         return {'error': str(e)}
 

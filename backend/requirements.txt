@@ -18,3 +18,4 @@ pytz
 gunicorn
 textblob==0.17.1
 feedparser
+pymongo==4.6.1
