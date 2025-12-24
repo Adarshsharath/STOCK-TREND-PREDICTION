@@ -135,7 +135,7 @@ def verify_token():
     """
     try:
         current_user_id = get_jwt_identity()
-        user = get_user_by_id(int(current_user_id))
+        user = get_user_by_id(current_user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -159,7 +159,7 @@ def get_current_user():
     """
     try:
         current_user_id = get_jwt_identity()
-        user = get_user_by_id(int(current_user_id))
+        user = get_user_by_id(current_user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
