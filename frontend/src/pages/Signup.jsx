@@ -227,11 +227,10 @@ const Signup = () => {
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-gray-600 dark:text-gray-400">Password strength:</span>
-                    <span className={`font-medium ${
-                      passwordStrength === 'weak' ? 'text-red-500' :
-                      passwordStrength === 'medium' ? 'text-yellow-500' :
-                      'text-green-500'
-                    }`}>
+                    <span className={`font-medium ${passwordStrength === 'weak' ? 'text-red-500' :
+                        passwordStrength === 'medium' ? 'text-yellow-500' :
+                          'text-green-500'
+                      }`}>
                       {passwordStrength.charAt(0).toUpperCase() + passwordStrength.slice(1)}
                     </span>
                   </div>
@@ -240,8 +239,8 @@ const Signup = () => {
                       className={`h-1 rounded-full transition-all ${getPasswordStrengthColor()}`}
                       style={{
                         width: passwordStrength === 'weak' ? '33%' :
-                               passwordStrength === 'medium' ? '66%' :
-                               passwordStrength === 'strong' ? '100%' : '0%'
+                          passwordStrength === 'medium' ? '66%' :
+                            passwordStrength === 'strong' ? '100%' : '0%'
                       }}
                     />
                   </div>

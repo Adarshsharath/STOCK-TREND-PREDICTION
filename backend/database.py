@@ -85,9 +85,10 @@ def create_user(username, email, password):
             'email': email,
             'password': hashed_password,
             'experience_level': 'beginner',
-            'virtual_balance': 1000000.0, # Default: ₹1,000,000
+            'virtual_balance': 0.0, # Default to 0 for new users
             'created_at': datetime.utcnow()
         }
+    
         
         result = users.insert_one(user_doc)
         user_id = str(result.inserted_id)
@@ -259,8 +260,11 @@ def get_virtual_balance(user_id):
         if isinstance(user_id, str):
             user_id = ObjectId(user_id)
         user = db.users.find_one({'_id': user_id}, {'virtual_balance': 1})
-        return user.get('virtual_balance', 1000000.0) if user else 1000000.0
-    except Exception:
+        if user and 'virtual_balance' in user:
+            return user['virtual_balance']
+        return 1000000.0
+    except Exception as e:
+        print(f"Error getting virtual balance for {user_id}: {e}")
         return 1000000.0
 
 def update_virtual_balance(user_id, amount):
@@ -269,12 +273,23 @@ def update_virtual_balance(user_id, amount):
         db = get_db()
         if isinstance(user_id, str):
             user_id = ObjectId(user_id)
+        
+        # Ensure we don't go below zero if it's a deduction
+        if amount < 0:
+            user = db.users.find_one({'_id': user_id}, {'virtual_balance': 1})
+            if not user or user.get('virtual_balance', 0) < abs(amount):
+                print(f"Insufficient funds for user {user_id}")
+                return False
+
         result = db.users.update_one(
             {'_id': user_id},
             {'$inc': {'virtual_balance': amount}}
         )
+        if result.modified_count == 0:
+            print(f"Failed to update virtual balance for user {user_id}")
         return result.modified_count > 0
-    except Exception:
+    except Exception as e:
+        print(f"Error updating virtual balance for {user_id}: {e}")
         return False
 
 def get_portfolio(user_id):
@@ -285,7 +300,8 @@ def get_portfolio(user_id):
             user_id = ObjectId(user_id)
         cursor = db.portfolios.find({'user_id': user_id})
         return list(cursor)
-    except Exception:
+    except Exception as e:
+        print(f"Error getting portfolio for {user_id}: {e}")
         return []
 
 def update_portfolio(user_id, symbol, quantity, price):
@@ -300,7 +316,8 @@ def update_portfolio(user_id, symbol, quantity, price):
         if holding:
             new_quantity = holding['quantity'] + quantity
             if new_quantity <= 0:
-                db.portfolios.delete_one({'user_id': user_id, 'symbol': symbol})
+                result = db.portfolios.delete_one({'user_id': user_id, 'symbol': symbol})
+                return result.deleted_count > 0
             else:
                 # Calculate new average price if buying
                 if quantity > 0:
@@ -309,7 +326,7 @@ def update_portfolio(user_id, symbol, quantity, price):
                 else:
                     new_avg_price = holding['avg_price']
                 
-                db.portfolios.update_one(
+                result = db.portfolios.update_one(
                     {'_id': holding['_id']},
                     {'$set': {
                         'quantity': new_quantity,
@@ -317,16 +334,19 @@ def update_portfolio(user_id, symbol, quantity, price):
                         'updated_at': datetime.utcnow()
                     }}
                 )
+                return result.modified_count > 0
         elif quantity > 0:
-            db.portfolios.insert_one({
+            result = db.portfolios.insert_one({
                 'user_id': user_id,
                 'symbol': symbol,
                 'quantity': quantity,
                 'avg_price': price,
                 'updated_at': datetime.utcnow()
             })
-        return True
-    except Exception:
+            return result.inserted_id is not None
+        return False
+    except Exception as e:
+        print(f"Error updating portfolio for {user_id}: {e}")
         return False
 
 def record_transaction(user_id, symbol, trade_type, quantity, price, strategy_used=None):
@@ -347,9 +367,10 @@ def record_transaction(user_id, symbol, trade_type, quantity, price, strategy_us
             'strategy_used': strategy_used,
             'currency': 'INR'
         }
-        db.transactions.insert_one(transaction)
-        return True
-    except Exception:
+        result = db.transactions.insert_one(transaction)
+        return result.inserted_id is not None
+    except Exception as e:
+        print(f"Error recording transaction for {user_id}: {e}")
         return False
 
 def get_transaction_history(user_id, limit=50):
@@ -366,8 +387,33 @@ def get_transaction_history(user_id, limit=50):
             tx['timestamp'] = tx['timestamp'].isoformat()
             results.append(tx)
         return results
-    except Exception:
+    except Exception as e:
+        print(f"Error getting transaction history for {user_id}: {e}")
         return []
+
+def reset_virtual_balance(user_id, amount):
+    """Reset user's virtual balance and clear their portfolio/transactions"""
+    try:
+        db = get_db()
+        if isinstance(user_id, str):
+            user_id = ObjectId(user_id)
+        
+        # 1. Clear portfolio
+        db.portfolios.delete_many({'user_id': user_id})
+        
+        # 2. Clear transactions
+        db.transactions.delete_many({'user_id': user_id})
+        
+        # 3. Set new balance
+        result = db.users.update_one(
+            {'_id': user_id},
+            {'$set': {'virtual_balance': float(amount)}}
+        )
+        
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error resetting virtual balance for {user_id}: {e}")
+        return False
 
 # Initialize database when module is imported
 if __name__ == '__main__':

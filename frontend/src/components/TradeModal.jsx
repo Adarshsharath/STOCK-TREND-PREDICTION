@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle } from 'lucide-react'
 import axios from 'axios'
+import { API_URL } from '../config'
 
 const TradeModal = ({ isOpen, onClose, symbol, currentPrice, prediction, onSuccess }) => {
     const [quantity, setQuantity] = useState(1)
@@ -19,7 +20,7 @@ const TradeModal = ({ isOpen, onClose, symbol, currentPrice, prediction, onSucce
         setFetchingBalance(true)
         try {
             const token = localStorage.getItem('token')
-            const res = await axios.get('http://localhost:5000/api/paper/balance', {
+            const res = await axios.get(`${API_URL}/api/paper/balance`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             setBalance(res.data.balance)
@@ -35,7 +36,7 @@ const TradeModal = ({ isOpen, onClose, symbol, currentPrice, prediction, onSucce
         setError(null)
         try {
             const token = localStorage.getItem('token')
-            await axios.post('http://localhost:5000/api/paper/trade', {
+            await axios.post(`${API_URL}/api/paper/trade`, {
                 symbol,
                 type,
                 quantity: parseInt(quantity),

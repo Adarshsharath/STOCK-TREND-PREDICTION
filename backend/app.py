@@ -10,6 +10,7 @@ from datetime import timedelta, datetime
 from dotenv import load_dotenv
 import traceback
 import yfinance as yf
+import requests
 
 
 # Add current directory to path
@@ -87,7 +88,8 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300}
 from database import (
     init_db, add_favorite, remove_favorite, list_favorites,
     get_virtual_balance, update_virtual_balance, get_portfolio,
-    update_portfolio, record_transaction, get_transaction_history
+    update_portfolio, record_transaction, get_transaction_history,
+    reset_virtual_balance
 )
 from utils.market_snapshots import get_intraday_summary
 init_db()
@@ -905,6 +907,25 @@ def paper_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/paper/reset', methods=['POST'])
+@jwt_required()
+def paper_reset():
+    """Reset user's virtual balance and clear assets"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        amount = data.get('initial_balance', 1000000.0)
+        
+        success = reset_virtual_balance(current_user_id, amount)
+        if success:
+            return jsonify({
+                'message': 'Portfolio reset successfully',
+                'new_balance': amount
+            })
+        return jsonify({'error': 'Failed to reset portfolio'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/paper/trade', methods=['POST'])
 @jwt_required()
 def paper_trade():
@@ -945,10 +966,13 @@ def paper_trade():
                 return jsonify({'error': 'Insufficient virtual balance'}), 400
             
             # Update balance and portfolio
-            update_virtual_balance(current_user_id, -total_cost)
-            update_portfolio(current_user_id, symbol, quantity, current_price)
-            record_transaction(current_user_id, symbol, 'buy', quantity, current_price, strategy)
+            bal_ok = update_virtual_balance(current_user_id, -total_cost)
+            port_ok = update_portfolio(current_user_id, symbol, quantity, current_price)
+            tx_ok = record_transaction(current_user_id, symbol, 'buy', quantity, current_price, strategy)
             
+            if not all([bal_ok, port_ok, tx_ok]):
+                return jsonify({'error': 'Failed to execute buy order in database'}), 500
+                
         else: # sell
             portfolio = get_portfolio(current_user_id)
             holding = next((h for h in portfolio if h['symbol'] == symbol), None)
@@ -957,9 +981,12 @@ def paper_trade():
                 return jsonify({'error': f'Insufficient holdings of {symbol}'}), 400
                 
             # Update balance and portfolio
-            update_virtual_balance(current_user_id, total_cost)
-            update_portfolio(current_user_id, symbol, -quantity, current_price)
-            record_transaction(current_user_id, symbol, 'sell', quantity, current_price, strategy)
+            bal_ok = update_virtual_balance(current_user_id, total_cost)
+            port_ok = update_portfolio(current_user_id, symbol, -quantity, current_price)
+            tx_ok = record_transaction(current_user_id, symbol, 'sell', quantity, current_price, strategy)
+            
+            if not all([bal_ok, port_ok, tx_ok]):
+                return jsonify({'error': 'Failed to execute sell order in database'}), 500
             
         return jsonify({
             'message': f'Successfully {trade_type}ed {quantity} shares of {symbol}',
@@ -1115,6 +1142,138 @@ def get_simulator_data():
             'error': str(e),
             'success': False
         }), 500
+
+@app.route('/api/astro', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_astro():
+    """Proxy for Horoscope API with fallback to Aztro API and synthetic data"""
+    if request.method == 'OPTIONS':
+        return '', 200
+        
+    try:
+        sign = request.args.get('sign', 'aries').lower()
+        day = request.args.get('day', 'today').lower()
+        print(f"🚀 Proxying Astro request for sign: {sign}, day: {day}")
+        
+        # Helper function to synthesize missing fields
+        def synthesize_fields(description, sign, date_str):
+            """Generate consistent lucky number, color, mood, etc. from description"""
+            import hashlib
+            seed = f"{sign}-{date_str}-{description[:50]}"
+            h = hashlib.md5(seed.encode()).hexdigest()
+            
+            colors = ["Gold", "Silver", "Emerald", "Ruby", "Sapphire", "Saffron", "Deep Blue", "Peach", "Violet", "Rose"]
+            moods = ["Focused", "Ambitious", "Cautious", "Optimistic", "Reflective", "Analytical", "Dynamic", "Peaceful"]
+            signs_list = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+            
+            lucky_num = (int(h[:2], 16) % 9) + 1  # 1-9
+            lucky_time_h = (int(h[2:4], 16) % 12) + 1
+            lucky_time_m = (int(h[4:6], 16) % 60)
+            am_pm = "AM" if int(h[6:8], 16) % 2 == 0 else "PM"
+            
+            return {
+                "lucky_number": str(lucky_num),
+                "lucky_time": f"{lucky_time_h}:{lucky_time_m:02d} {am_pm}",
+                "color": colors[int(h[8:10], 16) % len(colors)],
+                "mood": moods[int(h[10:12], 16) % len(moods)],
+                "compatibility": signs_list[int(h[12:14], 16) % len(signs_list)]
+            }
+        
+        # API 1: Try Horoscope API (Primary)
+        try:
+            print("📡 Trying Horoscope API (Primary)...")
+            api_url = f"https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={sign}&day={day}"
+            response = requests.get(api_url, timeout=5)
+            
+            if response.status_code == 200:
+                raw_data = response.json()
+                if raw_data.get('success'):
+                    base_info = raw_data['data']
+                    description = base_info.get('horoscope_data', '')
+                    date_str = base_info.get('date', 'today')
+                    
+                    # Synthesize missing fields
+                    synth = synthesize_fields(description, sign, date_str)
+                    
+                    final_data = {
+                        "date": date_str,
+                        "description": description,
+                        "current_date": date_str,
+                        **synth
+                    }
+                    
+                    print(f"✅ Horoscope API Success! Returning data for {sign}")
+                    return jsonify(final_data)
+        except Exception as e:
+            print(f"⚠️ Horoscope API failed: {str(e)}")
+        
+        # API 2: Try Aztro API (Fallback)
+        try:
+            print("📡 Trying Aztro API (Fallback)...")
+            aztro_url = f"https://aztro.sameerkumar.website/?sign={sign}&day={day}"
+            response = requests.post(aztro_url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Aztro API already has all fields
+                final_data = {
+                    "date": data.get('current_date', 'today'),
+                    "description": data.get('description', ''),
+                    "lucky_number": data.get('lucky_number', '7'),
+                    "lucky_time": data.get('lucky_time', '7pm'),
+                    "color": data.get('color', 'Gold'),
+                    "mood": data.get('mood', 'Happy'),
+                    "compatibility": data.get('compatibility', 'Leo'),
+                    "current_date": data.get('current_date', 'today')
+                }
+                
+                print(f"✅ Aztro API Success! Returning data for {sign}")
+                return jsonify(final_data)
+        except Exception as e:
+            print(f"⚠️ Aztro API failed: {str(e)}")
+        
+        # API 3: Generate Synthetic Data (Last Resort)
+        print("🔮 All APIs failed, generating synthetic horoscope...")
+        
+        from datetime import datetime
+        current_date = datetime.now().strftime('%B %d, %Y')
+        
+        # Generate horoscope based on zodiac element
+        zodiac_elements = {
+            'aries': 'Fire', 'leo': 'Fire', 'sagittarius': 'Fire',
+            'taurus': 'Earth', 'virgo': 'Earth', 'capricorn': 'Earth',
+            'gemini': 'Air', 'libra': 'Air', 'aquarius': 'Air',
+            'cancer': 'Water', 'scorpio': 'Water', 'pisces': 'Water'
+        }
+        
+        element = zodiac_elements.get(sign, 'Fire')
+        
+        # Element-based horoscope templates
+        horoscope_templates = {
+            'Fire': "Today brings dynamic energy and opportunities for growth. Technology and innovation sectors show promise. Focus on investments that align with your ambitious nature. Trust your instincts in financial decisions.",
+            'Earth': "A stable day ahead with focus on practical matters. Banking and infrastructure sectors look favorable. Your grounded approach will serve you well in investment decisions. Build for the long term.",
+            'Air': "Communication and networking take center stage. Technology and retail sectors present opportunities. Your analytical mind will help identify promising investments. Stay flexible and adaptable.",
+            'Water': "Intuition guides your financial decisions today. Consumer goods and healthcare sectors show potential. Trust your emotional intelligence in market analysis. Nurture your portfolio wisely."
+        }
+        
+        description = horoscope_templates.get(element, horoscope_templates['Fire'])
+        synth = synthesize_fields(description, sign, current_date)
+        
+        synthetic_data = {
+            "date": current_date,
+            "description": description,
+            "current_date": current_date,
+            **synth
+        }
+        
+        print(f"✅ Synthetic data generated for {sign}")
+        return jsonify(synthetic_data)
+            
+    except Exception as e:
+        print(f"💥 Critical Error in Astro Proxy: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'All horoscope services unavailable'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

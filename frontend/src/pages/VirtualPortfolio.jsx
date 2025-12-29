@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Wallet, Briefcase, History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign, Search, Activity, AlertCircle } from 'lucide-react'
+import { Wallet, Briefcase, History, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign, Search, Activity, AlertCircle, RotateCcw } from 'lucide-react'
 import axios from 'axios'
+import { API_URL } from '../config'
 import { useAuth } from '../context/AuthContext'
 import TradeModal from '../components/TradeModal'
+import ResetPortfolioModal from '../components/ResetPortfolioModal'
 
 const VirtualPortfolio = () => {
     const { user } = useAuth()
@@ -25,6 +27,7 @@ const VirtualPortfolio = () => {
     const [searching, setSearching] = useState(false)
     const [searchError, setSearchError] = useState(null)
     const [isTradeModalOpen, setIsTradeModalOpen] = useState(false)
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false)
     const [tradeSuccess, setTradeSuccess] = useState(null)
 
     const fetchData = async () => {
@@ -35,9 +38,9 @@ const VirtualPortfolio = () => {
             const headers = { Authorization: `Bearer ${token}` }
 
             const [balanceRes, portfolioRes, historyRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/paper/balance', { headers }),
-                axios.get('http://localhost:5000/api/paper/portfolio', { headers }),
-                axios.get('http://localhost:5000/api/paper/history', { headers })
+                axios.get(`${API_URL}/api/paper/balance`, { headers }),
+                axios.get(`${API_URL}/api/paper/portfolio`, { headers }),
+                axios.get(`${API_URL}/api/paper/history`, { headers })
             ])
 
             setBalance(balanceRes.data.balance)
@@ -51,6 +54,27 @@ const VirtualPortfolio = () => {
             setLoading(false)
         }
     }
+
+    const handleReset = async (initialBalance) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API_URL}/api/paper/reset`, {
+                initial_balance: initialBalance
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setTradeSuccess({ type: 'reset', quantity: 0, symbol: 'Portfolio' });
+            setIsResetModalOpen(false);
+            fetchData();
+        } catch (err) {
+            console.error('Reset error:', err);
+            setError('Failed to reset portfolio');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchData()
@@ -73,7 +97,7 @@ const VirtualPortfolio = () => {
         setSearchResult(null)
 
         try {
-            const res = await axios.get(`http://localhost:5000/api/stock-price?symbol=${searchQuery.toUpperCase()}`)
+            const res = await axios.get(`${API_URL}/api/stock-price?symbol=${searchQuery.toUpperCase()}`)
             setSearchResult(res.data)
         } catch (err) {
             console.error('Search error:', err)
@@ -101,7 +125,18 @@ const VirtualPortfolio = () => {
                             <Wallet className="w-5 h-5" />
                             <span className="text-sm font-medium uppercase tracking-wider">Virtual Balance</span>
                         </div>
-                        <h1 className="text-5xl font-black">{formatCurrency(balance)}</h1>
+                        <div className="flex flex-col md:flex-row md:items-center gap-6">
+                            <h1 className="text-5xl font-black">{formatCurrency(balance)}</h1>
+                            {balance === 0 && (
+                                <button
+                                    onClick={() => setIsResetModalOpen(true)}
+                                    className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-black text-sm shadow-xl hover:bg-indigo-50 transition-all active:scale-95 flex items-center space-x-2"
+                                >
+                                    <IndianRupee className="w-4 h-4" />
+                                    <span>INITIALIZE CAPITAL</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 min-w-[240px]">
                         <div className="text-indigo-100 text-sm mb-1">Total Portfolio Value</div>
@@ -201,41 +236,53 @@ const VirtualPortfolio = () => {
                 <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4 rounded-xl flex items-center justify-between animate-bounce shadow-lg">
                     <div className="flex items-center space-x-3">
                         <div className="bg-green-500 p-1.5 rounded-full">
-                            <TrendingUp className="w-4 h-4 text-white" />
+                            {tradeSuccess.type === 'reset' ? <RotateCcw className="w-4 h-4 text-white" /> : <TrendingUp className="w-4 h-4 text-white" />}
                         </div>
                         <p className="text-green-800 dark:text-green-300 font-bold">
-                            Trade executed! {tradeSuccess.quantity} shares of {tradeSuccess.symbol} {tradeSuccess.type}ed.
+                            {tradeSuccess.type === 'reset'
+                                ? 'Portfolio has been reset successfully!'
+                                : `Trade executed! ${tradeSuccess.quantity} shares of ${tradeSuccess.symbol} ${tradeSuccess.type}ed.`}
                         </p>
                     </div>
                     <button onClick={() => setTradeSuccess(null)} className="text-green-700 dark:text-green-400 font-black">CLOSE</button>
                 </div>
             )}
 
-            {/* Tabs */}
-            <div className="flex space-x-1 bg-gray-100 dark:bg-dark-bg-elevated p-1 rounded-xl w-fit">
+            {/* Tabs & Reset */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex space-x-1 bg-gray-100 dark:bg-dark-bg-elevated p-1 rounded-xl w-fit">
+                    <button
+                        onClick={() => setActiveTab('portfolio')}
+                        className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'portfolio'
+                            ? 'bg-white dark:bg-dark-bg-secondary shadow-sm text-primary'
+                            : 'text-text-muted dark:text-dark-text-muted hover:text-text'
+                            }`}
+                    >
+                        <div className="flex items-center space-x-2">
+                            <Briefcase className="w-4 h-4" />
+                            <span>My Holdings</span>
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'history'
+                            ? 'bg-white dark:bg-dark-bg-secondary shadow-sm text-primary'
+                            : 'text-text-muted dark:text-dark-text-muted hover:text-text'
+                            }`}
+                    >
+                        <div className="flex items-center space-x-2">
+                            <History className="w-4 h-4" />
+                            <span>Trade History</span>
+                        </div>
+                    </button>
+                </div>
+
                 <button
-                    onClick={() => setActiveTab('portfolio')}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'portfolio'
-                        ? 'bg-white dark:bg-dark-bg-secondary shadow-sm text-primary'
-                        : 'text-text-muted dark:text-dark-text-muted hover:text-text'
-                        }`}
+                    onClick={() => setIsResetModalOpen(true)}
+                    className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all border border-red-100 dark:border-red-900/20"
                 >
-                    <div className="flex items-center space-x-2">
-                        <Briefcase className="w-4 h-4" />
-                        <span>My Holdings</span>
-                    </div>
-                </button>
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'history'
-                        ? 'bg-white dark:bg-dark-bg-secondary shadow-sm text-primary'
-                        : 'text-text-muted dark:text-dark-text-muted hover:text-text'
-                        }`}
-                >
-                    <div className="flex items-center space-x-2">
-                        <History className="w-4 h-4" />
-                        <span>Trade History</span>
-                    </div>
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{balance === 0 ? 'Initialize Balance' : 'Reset Portfolio'}</span>
                 </button>
             </div>
 
@@ -348,6 +395,14 @@ const VirtualPortfolio = () => {
                     fetchData()
                     setTimeout(() => setTradeSuccess(null), 8000)
                 }}
+            />
+
+            <ResetPortfolioModal
+                isOpen={isResetModalOpen}
+                onClose={() => setIsResetModalOpen(false)}
+                onReset={handleReset}
+                loading={loading}
+                isInitializing={balance === 0}
             />
         </div>
     )

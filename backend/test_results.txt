@@ -1,0 +1,2 @@
+NSE Status: {'is_open': False, 'market': 'NSE', 'current_time': '2025-12-25T10:40:53.068463+05:30', 'message': 'NSE is closed for a public holiday', 'next_open': '2025-12-26T09:15:00+05:30'}
+NYSE Status: {'is_open': False, 'market': 'NYSE', 'current_time': '2025-12-25T00:10:53.069028-05:00', 'message': 'NYSE is closed for a public holiday', 'next_open': '2025-12-26T09:30:00-05:00'}

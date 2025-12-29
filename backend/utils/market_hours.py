@@ -50,6 +50,35 @@ def get_market_for_symbol(symbol):
     # Default to US markets for symbols without suffix
     return 'NYSE'
 
+# Market Holidays (YYYY-MM-DD format)
+MARKET_HOLIDAYS = {
+    'NSE': [
+        # 2024
+        '2024-01-26', '2024-03-08', '2024-03-25', '2024-03-29', '2024-04-11',
+        '2024-04-17', '2024-05-01', '2024-06-17', '2024-07-17', '2024-08-15',
+        '2024-10-02', '2024-11-01', '2024-11-15', '2024-12-25',
+        # 2025
+        '2025-01-26', '2025-03-14', '2025-03-31', '2025-04-10', '2025-04-18',
+        '2025-05-01', '2025-08-15', '2025-10-02', '2025-10-21', '2025-12-25',
+        # 2026
+        '2026-01-26', '2026-03-03', '2026-03-26', '2026-03-31', '2026-04-03',
+        '2026-04-14', '2026-05-01', '2026-05-28', '2026-06-26', '2026-09-14',
+        '2026-10-02', '2026-10-20', '2026-11-10', '2026-11-24', '2026-12-25'
+    ],
+    'NYSE': [
+        # 2024
+        '2024-01-01', '2024-01-15', '2024-02-19', '2024-03-29', '2024-05-27',
+        '2024-06-19', '2024-07-04', '2024-09-02', '2024-11-28', '2024-12-25',
+        # 2025
+        '2025-01-01', '2025-01-20', '2025-02-17', '2025-04-18', '2025-05-26',
+        '2025-06-19', '2025-07-04', '2025-09-01', '2025-11-27', '2025-12-25',
+        # 2026
+        '2026-01-01', '2026-01-19', '2026-02-16', '2026-04-03', '2026-05-25',
+        '2026-06-19', '2026-07-03', '2026-09-07', '2026-11-26', '2026-12-25'
+    ]
+}
+MARKET_HOLIDAYS['NASDAQ'] = MARKET_HOLIDAYS['NYSE']
+
 def is_market_open(symbol=None, market=None):
     """
     Check if the market is currently open for trading
@@ -87,16 +116,28 @@ def is_market_open(symbol=None, market=None):
     now = datetime.now(tz)
     current_time = now.time()
     current_day = now.weekday()  # 0 = Monday, 6 = Sunday
+    current_date_str = now.strftime('%Y-%m-%d')
     
-    # Check if it's a trading day
+    # Check if it's a holiday
+    if market in MARKET_HOLIDAYS and current_date_str in MARKET_HOLIDAYS[market]:
+        next_open_day = _get_next_trading_day(now, market_config)
+        return {
+            'is_open': False,
+            'market': market,
+            'current_time': now.isoformat(),
+            'message': f'{market} is closed for a public holiday',
+            'next_open': next_open_day.isoformat()
+        }
+
+    # Check if it's a trading day (weekend check)
     if current_day not in market_config['trading_days']:
         next_open_day = _get_next_trading_day(now, market_config)
         return {
             'is_open': False,
             'market': market,
-            'current_time': now.strftime('%Y-%m-%d %H:%M:%S %Z'),
+            'current_time': now.isoformat(),
             'message': f'{market} is closed on weekends',
-            'next_open': next_open_day.strftime('%Y-%m-%d %H:%M:%S %Z')
+            'next_open': next_open_day.isoformat()
         }
     
     # Check if current time is within trading hours
@@ -112,7 +153,7 @@ def is_market_open(symbol=None, market=None):
         return {
             'is_open': True,
             'market': market,
-            'current_time': now.strftime('%Y-%m-%d %H:%M:%S %Z'),
+            'current_time': now.isoformat(),
             'closes_at': close_time.strftime('%H:%M %Z'),
             'message': f'{market} is currently open for trading'
         }
@@ -134,8 +175,8 @@ def is_market_open(symbol=None, market=None):
         return {
             'is_open': False,
             'market': market,
-            'current_time': now.strftime('%Y-%m-%d %H:%M:%S %Z'),
-            'next_open': next_open.strftime('%Y-%m-%d %H:%M:%S %Z'),
+            'current_time': now.isoformat(),
+            'next_open': next_open.isoformat(),
             'message': f'{market} is currently closed. Opens at {market_config["open_time"].strftime("%H:%M")} {market_config["timezone"]}'
         }
 
@@ -157,7 +198,8 @@ def _get_next_trading_day(current_dt, market_config):
     next_dt = next_dt + timedelta(days=1)
     
     # Find next trading day
-    while next_dt.weekday() not in market_config['trading_days']:
+    while next_dt.weekday() not in market_config['trading_days'] or \
+          (next_dt.strftime('%Y-%m-%d') in MARKET_HOLIDAYS.get(get_market_for_symbol_by_config(market_config), [])):
         next_dt = next_dt + timedelta(days=1)
     
     # Set to market open time
@@ -169,6 +211,13 @@ def _get_next_trading_day(current_dt, market_config):
     )
     
     return next_dt
+
+def get_market_for_symbol_by_config(market_config):
+    """Helper to find market key by config object"""
+    for market, config in MARKET_HOURS.items():
+        if config == market_config:
+            return market
+    return None
 
 def get_market_status_message(symbol):
     """
