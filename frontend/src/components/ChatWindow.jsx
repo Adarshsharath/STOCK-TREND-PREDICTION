@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Trash2, MessageCircle, Plus, History, Sparkles, X as CloseIcon } from 'lucide-react'
+import { Send, Loader2, Trash2, MessageCircle, Plus, History, Sparkles, X as CloseIcon, Menu, Bot, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../context/ChatContext'
 import axios from 'axios'
@@ -50,10 +50,15 @@ const ChatWindow = () => {
     setIsLoading(true)
 
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.post('/api/chatbot', {
         message: messageToSend,
         conversation_id: currentConversationId,
         conversation_history: conversationHistory
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
 
       const botMessage = {
@@ -100,8 +105,7 @@ const ChatWindow = () => {
     await loadConversation(conversationId)
   }
 
-  const handleDeleteConversation = async (e, conversationId) => {
-    e.stopPropagation()
+  const handleDeleteConversation = async (conversationId) => {
     if (window.confirm('Delete this conversation?')) {
       await deleteConversation(conversationId)
     }
@@ -123,77 +127,122 @@ const ChatWindow = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 20, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      className="fixed bottom-24 right-6 w-[1100px] h-[700px] max-w-[95vw] max-h-[85vh] bg-dark-bg-secondary border border-dark-border rounded-2xl shadow-glass flex overflow-hidden"
+      exit={{ opacity: 0, y: 20, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="fixed bottom-24 right-6 w-[1100px] h-[700px] max-w-[95vw] max-h-[85vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl flex overflow-hidden backdrop-blur-xl"
       style={{ zIndex: 9998 }}
     >
-      {/* Sidebar */}
+      {/* Modern Sidebar */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="bg-gradient-to-b from-dark-bg-primary to-dark-bg-secondary border-r border-dark-border flex flex-col overflow-hidden"
+            initial={{ x: -280, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -280, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="w-80 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl"
           >
-            {/* Sidebar Header */}
-            <div className="p-4 border-b border-dark-border">
+            {/* Header */}
+            <div className="p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-lg rounded-xl flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">FinSight AI</h3>
+                    <p className="text-blue-100 text-xs">Your Financial Assistant</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSidebar(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all"
+                >
+                  <CloseIcon className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              
               <button
                 onClick={handleNewChat}
-                className="w-full bg-gradient-to-r from-finsight-blue-500 to-finsight-teal-500 hover:from-finsight-blue-600 hover:to-finsight-teal-600 text-white px-4 py-2.5 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all shadow-neon-blue hover:shadow-neon-teal"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Plus className="w-5 h-5" />
-                <span>New Chat</span>
+                New Conversation
               </button>
             </div>
 
             {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {isLoadingConversations ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-finsight-blue-500" />
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Loading conversations...</p>
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <History className="w-10 h-10 mx-auto mb-2 text-dark-text-muted" />
-                  <p className="text-sm text-dark-text-secondary">No conversations yet</p>
-                  <p className="text-xs text-dark-text-muted mt-1">Start chatting to create history</p>
+                <div className="text-center py-12 px-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-8 rounded-2xl border border-blue-100 dark:border-blue-900">
+                    <MessageCircle className="w-16 h-16 mx-auto mb-4 text-blue-500 opacity-50" />
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">No conversations yet</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Start chatting to begin your journey!</p>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  {conversations.map((conv) => (
-                    <motion.div
-                      key={conv.id}
-                      whileHover={{ scale: 1.02 }}
-                      className={`p-3 rounded-xl cursor-pointer transition-all group ${
-                        currentConversationId === conv.id
-                          ? 'bg-gradient-to-r from-finsight-blue-500/20 to-finsight-teal-500/20 border border-finsight-blue-500/50 shadow-neon-blue'
-                          : 'hover:bg-dark-bg-elevated'
-                      }`}
-                      onClick={() => handleSelectConversation(conv.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-dark-text-primary truncate">
-                            {conv.title}
-                          </p>
-                          <p className="text-xs text-dark-text-muted mt-0.5">
-                            {formatDate(conv.updated_at)}
+                conversations.map((conv, index) => (
+                  <motion.div
+                    key={conv.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 ${
+                      currentConversationId === conv.id
+                        ? 'bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white shadow-lg scale-[1.02]'
+                        : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md border border-gray-200 dark:border-gray-700'
+                    }`}
+                    onClick={() => handleSelectConversation(conv.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageCircle className={`w-4 h-4 flex-shrink-0 ${
+                            currentConversationId === conv.id ? 'text-white' : 'text-blue-600'
+                          }`} />
+                          <p className={`text-sm font-semibold truncate ${
+                            currentConversationId === conv.id ? 'text-white' : 'text-gray-900 dark:text-white'
+                          }`}>
+                            {conv.title || 'New Conversation'}
                           </p>
                         </div>
-                        <button
-                          onClick={(e) => handleDeleteConversation(e, conv.id)}
-                          className="opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-500/20 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                        </button>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={currentConversationId === conv.id ? 'text-blue-100' : 'text-gray-500'}>
+                            {conv.message_count || 0} messages
+                          </span>
+                          <span className={currentConversationId === conv.id ? 'text-blue-100' : 'text-gray-400'}>•</span>
+                          <span className={currentConversationId === conv.id ? 'text-blue-100' : 'text-gray-500'}>
+                            {formatDate(conv.updated_at)}
+                          </span>
+                        </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteConversation(conv.id)
+                        }}
+                        className={`opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all ${
+                          currentConversationId === conv.id 
+                            ? 'hover:bg-white/20' 
+                            : 'hover:bg-red-100 dark:hover:bg-red-900/30'
+                        }`}
+                      >
+                        <Trash2 className={`w-4 h-4 ${
+                          currentConversationId === conv.id ? 'text-white' : 'text-red-600'
+                        }`} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
               )}
             </div>
           </motion.div>
@@ -201,122 +250,159 @@ const ChatWindow = () => {
       </AnimatePresence>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
         {/* Header */}
-        <div className="bg-gradient-to-r from-finsight-blue-600 via-finsight-teal-600 to-finsight-purple-600 p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowSidebar(!showSidebar)}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-              >
-                <History className="w-5 h-5 text-white" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-lg">FinSight AI</h3>
-                  <p className="text-xs text-white opacity-90">Your Intelligent Finance Assistant</p>
-                </div>
-              </div>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-850 border-b border-gray-200 dark:border-gray-800">
+          {!showSidebar && (
             <button
-              onClick={clearMessages}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-              title="Clear current chat"
+              onClick={() => setShowSidebar(true)}
+              className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all"
             >
-              <Trash2 className="w-5 h-5 text-white" />
+              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                FinSight AI Assistant
+              </h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Powered by Groq + RAG</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {isLoading && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="font-medium">Thinking...</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 bg-dark-bg-primary">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-950">
           {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-md">
-                <div className="bg-gradient-to-br from-finsight-blue-500 to-finsight-teal-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-neon-blue">
-                  <MessageCircle className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-dark-text-primary mb-2">Welcome to FinSight AI!</h3>
-                <p className="text-sm text-dark-text-secondary mb-4">Your intelligent assistant for stock analysis, trading strategies, and market insights.</p>
-                <div className="bg-dark-bg-elevated rounded-xl p-4 shadow-glass border border-dark-border">
-                  <p className="text-xs text-dark-text-muted mb-2">Try asking:</p>
-                  <div className="space-y-2 text-left">
-                    <div className="text-xs text-dark-text-primary bg-dark-bg-card p-2 rounded-lg border border-dark-border-light">💹 "What's the market outlook today?"</div>
-                    <div className="text-xs text-dark-text-primary bg-dark-bg-card p-2 rounded-lg border border-dark-border-light">📊 "Explain RSI strategy"</div>
-                    <div className="text-xs text-dark-text-primary bg-dark-bg-card p-2 rounded-lg border border-dark-border-light">🎯 "Best indicators for day trading"</div>
-                  </div>
-                </div>
+            <div className="h-full flex flex-col items-center justify-center text-center px-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl"
+              >
+                <Sparkles className="w-10 h-10 text-white" />
+              </motion.div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+                Welcome to FinSight AI!
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+                Your intelligent financial assistant. Ask me about trading strategies, ML models, stock prices, or anything about the platform!
+              </p>
+              <div className="grid grid-cols-2 gap-3 max-w-2xl">
+                {['What strategies are available?', 'Explain RSI strategy', 'What is MACD?', 'Current price of AAPL?'].map((suggestion, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => setInput(suggestion)}
+                    className="px-4 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-left transition-all hover:shadow-md hover:scale-[1.02]"
+                  >
+                    <Sparkles className="w-4 h-4 text-blue-600 inline mr-2" />
+                    {suggestion}
+                  </motion.button>
+                ))}
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {messages.map((msg, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] p-5 rounded-2xl shadow-sm ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-r from-finsight-blue-500 to-finsight-teal-500 text-white shadow-neon-blue'
-                        : msg.error
-                        ? 'bg-red-500/20 text-red-300 border border-red-500/50'
-                        : 'bg-dark-bg-elevated text-dark-text-primary border border-dark-border-light'
-                    }`}
-                  >
-                    {msg.role === 'user' ? (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                    ) : (
-                      <FormattedMessage content={msg.content} isUser={false} />
-                    )}
-                    <p className={`text-xs mt-3 pt-2 border-t ${
-                      msg.role === 'user' 
-                        ? 'text-blue-100 border-blue-400' 
-                        : 'text-dark-text-muted border-dark-border-light'
-                    }`}>
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </p>
+            messages.map((message, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Bot className="w-4 h-4 text-white" />
                   </div>
-                </motion.div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-dark-bg-elevated border border-dark-border-light p-4 rounded-2xl shadow-sm">
-                    <Loader2 className="w-5 h-5 animate-spin text-finsight-blue-500" />
+                )}
+                <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
+                  <div className={`rounded-2xl px-5 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md'
+                  }`}>
+                    <FormattedMessage content={message.content} />
                   </div>
+                  <p className={`text-xs mt-2 ${
+                    message.role === 'user' ? 'text-right text-gray-500' : 'text-left text-gray-400'
+                  }`}>
+                    {formatDate(message.timestamp)}
+                  </p>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                  </div>
+                )}
+              </motion.div>
+            ))
           )}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex gap-3"
+            >
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3 shadow-md">
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="p-4 bg-dark-bg-secondary border-t border-dark-border">
-          <div className="flex space-x-3">
+        {/* Input Area */}
+        <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me anything about stocks, trading strategies, or market analysis..."
-              className="flex-1 bg-dark-bg-elevated border border-dark-border-light rounded-xl px-5 py-3 text-sm text-dark-text-primary placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-finsight-blue-500 focus:border-transparent transition-all"
+              placeholder="Ask me anything about trading, strategies, or stock prices..."
               disabled={isLoading}
+              className="flex-1 px-5 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="bg-gradient-to-r from-finsight-blue-500 to-finsight-teal-500 hover:from-finsight-blue-600 hover:to-finsight-teal-600 text-white px-5 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-neon-blue hover:shadow-neon-teal"
+              disabled={isLoading || !input.trim()}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 font-semibold"
             >
-              <Send className="w-5 h-5" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  Send
+                </>
+              )}
             </button>
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+            Press Enter to send • Shift+Enter for new line
+          </p>
         </div>
       </div>
     </motion.div>
