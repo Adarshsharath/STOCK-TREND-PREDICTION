@@ -63,16 +63,9 @@ from models.randomforest_classifier_model import randomforest_classifier_predict
 from models.lstm_classifier_model import lstm_classifier_predict
 from models.svm_classifier_model import svm_classifier_predict
 
-# Import chatbot
-from chatbot.perplexity_bot_new import chat_with_perplexity
-from chatbot.chat_history import (
-    create_new_conversation,
-    save_message,
-    get_conversation,
-    list_conversations,
-    delete_conversation,
-    update_conversation_title
-)
+# Import chatbot (New Groq-based system with RAG)
+from chatbot.groq_agent import chat_with_agent
+from chatbot.mongo_chat_manager import get_chat_manager
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -101,6 +94,24 @@ try:
     stream.start()
 except Exception:
     pass
+
+# Warm up chatbot agent on startup (pre-load RAG and LLM)
+print("\n" + "="*60)
+print("🤖 Warming up FinSight AI Chatbot...")
+print("="*60)
+try:
+    import time
+    warmup_start = time.time()
+    from chatbot.groq_agent import get_agent
+    agent = get_agent()  # Pre-initialize the singleton
+    warmup_time = time.time() - warmup_start
+    print(f"✅ Chatbot ready in {warmup_time:.2f}s")
+    print(f"   Subsequent requests will be much faster!")
+    print("="*60 + "\n")
+except Exception as e:
+    print(f"⚠️  Warning: Chatbot warmup failed: {e}")
+    print("   Chatbot will initialize on first request")
+    print("="*60 + "\n")
 
 # Register auth blueprint
 from auth import auth_bp
@@ -520,6 +531,7 @@ def get_prediction():
 def chatbot():
     """
     Chat with FinSight AI (requires authentication)
+    Uses Groq LLM with RAG and LangChain agents
     
     Headers:
         Authorization: Bearer <token>
@@ -527,39 +539,103 @@ def chatbot():
     Request Body:
         message: User's message
         conversation_id: Conversation ID (optional, creates new if not provided)
-        conversation_history: Previous conversation (optional)
     """
     try:
         current_user_id = get_jwt_identity()
         data = request.get_json()
         
+        # Log request for debugging
+        print(f"\n{'='*60}")
+        print(f"Chatbot request from user: {current_user_id}")
+        print(f"Request data: {data}")
+        print(f"{'='*60}\n")
+        
         if not data or 'message' not in data:
+            print("ERROR: Message field missing in request")
             return jsonify({'error': 'Message is required'}), 400
         
         user_message = data['message']
         conversation_id = data.get('conversation_id')
-        conversation_history = data.get('conversation_history', None)
         
-        # Create new conversation if ID not provided
-        if not conversation_id:
-            conversation_id = create_new_conversation(current_user_id)
+        print(f"User message: {user_message}")
+        print(f"Conversation ID: {conversation_id}")
+        
+        # Get chat manager
+        try:
+            chat_manager = get_chat_manager()
+            print("✓ Chat manager initialized")
+        except Exception as e:
+            print(f"ERROR: Failed to initialize chat manager: {e}")
+            # Continue without chat manager - return direct response
+            chat_manager = None
+        
+        # Create new conversation if ID not provided and chat manager available
+        if chat_manager and not conversation_id:
+            try:
+                conversation_id = chat_manager.create_conversation(current_user_id)
+                print(f"✓ Created new conversation: {conversation_id}")
+            except Exception as e:
+                print(f"WARNING: Failed to create conversation: {e}")
+                conversation_id = None
+        
+        # Get conversation history for context
+        history = []
+        if chat_manager and conversation_id:
+            try:
+                history = chat_manager.get_conversation_history(conversation_id, current_user_id, limit=10)
+                print(f"✓ Loaded {len(history)} history messages")
+            except Exception as e:
+                print(f"WARNING: Failed to load history: {e}")
         
         # Save user message
-        save_message(conversation_id, current_user_id, 'user', user_message)
+        if chat_manager and conversation_id:
+            try:
+                chat_manager.save_message(conversation_id, current_user_id, 'user', user_message)
+                print("✓ Saved user message")
+            except Exception as e:
+                print(f"WARNING: Failed to save user message: {e}")
         
-        # Get response from Perplexity
-        result = chat_with_perplexity(user_message, conversation_history)
+        # Get response from Groq agent with RAG
+        print("Calling chat_with_agent...")
+        try:
+            result = chat_with_agent(user_message, history)
+            print(f"✓ Got response from agent: success={result.get('success')}")
+        except Exception as e:
+            print(f"ERROR: chat_with_agent failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'response': f"I'm sorry, I encountered an error: {str(e)}",
+                'conversation_id': conversation_id,
+                'error': True
+            }), 500
         
         # Save assistant response if successful
-        if not result.get('error'):
-            save_message(conversation_id, current_user_id, 'assistant', result['response'])
-        
-        # Add conversation_id to result
-        result['conversation_id'] = conversation_id
-        
-        return jsonify(result)
+        if result.get('success'):
+            if chat_manager and conversation_id:
+                try:
+                    chat_manager.save_message(conversation_id, current_user_id, 'assistant', result['response'])
+                    print("✓ Saved assistant response")
+                except Exception as e:
+                    print(f"WARNING: Failed to save assistant response: {e}")
+            
+            return jsonify({
+                'response': result['response'],
+                'conversation_id': conversation_id,
+                'timestamp': result.get('timestamp'),
+                'error': False
+            })
+        else:
+            return jsonify({
+                'response': result.get('response', 'An error occurred'),
+                'conversation_id': conversation_id,
+                'error': True
+            }), 500
     
     except Exception as e:
+        print(f"ERROR: Chatbot route exception: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/conversations', methods=['GET'])
@@ -568,7 +644,8 @@ def get_conversations():
     """Get all conversations for current user"""
     try:
         current_user_id = get_jwt_identity()
-        conversations = list_conversations(current_user_id)
+        chat_manager = get_chat_manager()
+        conversations = chat_manager.list_conversations(current_user_id)
         return jsonify({'conversations': conversations})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -579,7 +656,8 @@ def get_conversation_by_id(conversation_id):
     """Get a specific conversation (with ownership verification)"""
     try:
         current_user_id = get_jwt_identity()
-        conversation = get_conversation(conversation_id, current_user_id)
+        chat_manager = get_chat_manager()
+        conversation = chat_manager.get_conversation(conversation_id, current_user_id)
         if not conversation:
             return jsonify({'error': 'Conversation not found'}), 404
         return jsonify(conversation)
@@ -592,7 +670,8 @@ def delete_conversation_by_id(conversation_id):
     """Delete a conversation (with ownership verification)"""
     try:
         current_user_id = get_jwt_identity()
-        success = delete_conversation(conversation_id, current_user_id)
+        chat_manager = get_chat_manager()
+        success = chat_manager.delete_conversation(conversation_id, current_user_id)
         if success:
             return jsonify({'message': 'Conversation deleted successfully'})
         return jsonify({'error': 'Conversation not found'}), 404
@@ -605,11 +684,12 @@ def update_conversation_title_route(conversation_id):
     """Update conversation title (with ownership verification)"""
     try:
         current_user_id = get_jwt_identity()
+        chat_manager = get_chat_manager()
         data = request.get_json()
         if not data or 'title' not in data:
             return jsonify({'error': 'Title is required'}), 400
         
-        success = update_conversation_title(conversation_id, current_user_id, data['title'])
+        success = chat_manager.update_title(conversation_id, current_user_id, data['title'])
         if success:
             return jsonify({'message': 'Title updated successfully'})
         return jsonify({'error': 'Conversation not found'}), 404
@@ -622,7 +702,8 @@ def create_conversation():
     """Create a new conversation for current user"""
     try:
         current_user_id = get_jwt_identity()
-        conversation_id = create_new_conversation(current_user_id)
+        chat_manager = get_chat_manager()
+        conversation_id = chat_manager.create_conversation(current_user_id)
         return jsonify({'conversation_id': conversation_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
