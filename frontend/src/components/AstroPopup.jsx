@@ -94,22 +94,93 @@ const AstroPopup = () => {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button - ENHANCED FOR VISIBILITY */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-24 right-6 bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white p-0 rounded-full shadow-2xl transition-all w-16 h-16 flex items-center justify-center z-[9998]"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+        className="fixed top-24 right-6 bg-gradient-to-br from-purple-500 via-pink-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white p-0 rounded-full shadow-2xl transition-all w-20 h-20 flex items-center justify-center z-[9998] overflow-visible"
+        style={{
+          boxShadow: '0 0 40px rgba(139, 92, 246, 0.8), 0 0 80px rgba(236, 72, 153, 0.5)'
+        }}
+        whileHover={{ scale: 1.15, rotate: 15 }}
+        whileTap={{ scale: 0.95 }}
         animate={{
+          scale: [1, 1.08, 1],
+          rotate: [0, 10, -10, 0],
           boxShadow: [
-            '0 0 20px rgba(139, 92, 246, 0.5)',
-            '0 0 30px rgba(139, 92, 246, 0.7)',
-            '0 0 20px rgba(139, 92, 246, 0.5)'
+            '0 0 40px rgba(139, 92, 246, 0.8), 0 0 80px rgba(236, 72, 153, 0.5)',
+            '0 0 60px rgba(139, 92, 246, 1), 0 0 100px rgba(236, 72, 153, 0.8)',
+            '0 0 40px rgba(139, 92, 246, 0.8), 0 0 80px rgba(236, 72, 153, 0.5)'
           ]
         }}
-        transition={{ duration: 2, repeat: Infinity }}
+        transition={{
+          scale: {
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          },
+          rotate: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          },
+          boxShadow: {
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }
+        }}
       >
-        <Sparkles className="w-8 h-8" />
+        {/* Outer magical ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 opacity-40"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.4, 0.1, 0.4]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeOut"
+          }}
+        />
+
+        {/* Middle sparkle ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 opacity-30"
+          animate={{
+            scale: [1, 1.7, 1],
+            opacity: [0.3, 0, 0.3]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeOut",
+            delay: 0.4
+          }}
+        />
+
+        {/* Rotating sparkles around button */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        >
+          <div className="absolute -top-1 left-1/2 w-2 h-2 bg-yellow-300 rounded-full shadow-lg shadow-yellow-300/50" />
+          <div className="absolute top-1/2 -right-1 w-2 h-2 bg-pink-300 rounded-full shadow-lg shadow-pink-300/50" />
+          <div className="absolute -bottom-1 left-1/2 w-2 h-2 bg-purple-300 rounded-full shadow-lg shadow-purple-300/50" />
+          <div className="absolute top-1/2 -left-1 w-2 h-2 bg-cyan-300 rounded-full shadow-lg shadow-cyan-300/50" />
+        </motion.div>
+
+        <Sparkles className="w-10 h-10 relative z-10 drop-shadow-lg" />
+
+        {/* "ASTRO" label */}
+        <motion.div
+          animate={{ opacity: [0.8, 1, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-lg"
+        >
+          ✨ ASTRO
+        </motion.div>
       </motion.button>
 
       <AnimatePresence>

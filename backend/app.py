@@ -29,6 +29,8 @@ from utils.news_sentiment import fetch_news_sentiment, get_sentiment_summary
 from utils.confidence_calculator import get_confidence_explanation
 from utils.market_data import fetch_market_valuation, get_market_summary
 from utils.market_hours import is_market_open, get_market_status_message
+from utils.whale_data import get_whale_alerts
+
 
 # Import strategies
 from strategies.ema_crossover import ema_crossover_strategy
@@ -826,6 +828,53 @@ def get_stock_price():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/whale-alerts', methods=['GET'])
+def whale_alerts():
+    """
+    Get real-time whale alerts (bulk deals, block deals, short selling) from NSE India
+    
+    Returns:
+        JSON with alerts list, statistics, and metadata
+    """
+    try:
+        # Check cache first (5-minute timeout to reduce API calls)
+        cache_key = 'whale_alerts_nse'
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            return jsonify(cached_data)
+        
+        # Fetch fresh data from NSE
+        whale_data = get_whale_alerts()
+        
+        # Add market status
+        market_status = is_market_open(symbol='RELIANCE.NS')
+        whale_data['market_status'] = market_status
+        
+        # Cache the result for 5 minutes
+        cache.set(cache_key, whale_data, timeout=300)
+        
+        # Clean NaN values
+        whale_data = clean_nan_values(whale_data)
+        
+        return jsonify(whale_data)
+    
+    except Exception as e:
+        print(f"Error in whale alerts endpoint: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'alerts': [],
+            'stats': {
+                'total': 0,
+                'bullish': 0,
+                'bearish': 0,
+                'neutral': 0,
+                'sentiment': 'Neutral'
+            },
+            'error': str(e),
+            'message': 'Failed to fetch whale data from NSE'
+        }), 500
 
 # --- Virtual Money (Paper Trading) Endpoints ---
 

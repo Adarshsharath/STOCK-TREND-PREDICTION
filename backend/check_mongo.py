@@ -14,7 +14,6 @@ def run_diagnostic():
     target_collections = ['users', 'favorites', 'conversations', 'portfolios', 'transactions']
     
     with open('mongo_diag.txt', 'w') as f:
-        f.write(f"Connecting to: {uri}\n")
         f.write(f"Database: {db_name}\n\n")
         
         existing = db.list_collection_names()

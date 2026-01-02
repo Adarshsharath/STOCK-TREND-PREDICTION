@@ -192,56 +192,104 @@ const WhalePopup = () => {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button - ENHANCED FOR VISIBILITY */}
       <motion.button
         onClick={togglePopup}
-        className="fixed top-56 right-6 bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white p-0 rounded-full shadow-2xl hover:shadow-3xl transition-all w-16 h-16 flex items-center justify-center overflow-visible group"
+        className="fixed top-56 right-6 bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:to-cyan-700 text-white p-0 rounded-full shadow-2xl hover:shadow-3xl transition-all w-20 h-20 flex items-center justify-center overflow-visible group"
         style={{
           zIndex: 9998,
           boxShadow: newAlertDetected
-            ? '0 10px 50px rgba(59, 130, 246, 1)'
-            : '0 10px 40px rgba(59, 130, 246, 0.6)'
+            ? '0 0 60px rgba(59, 130, 246, 1), 0 0 100px rgba(6, 182, 212, 0.8)'
+            : '0 0 40px rgba(59, 130, 246, 0.8), 0 0 80px rgba(6, 182, 212, 0.5)'
         }}
-        whileHover={{ scale: 1.1, rotate: 5 }}
-        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.15, rotate: 10 }}
+        whileTap={{ scale: 0.95 }}
         animate={{
+          scale: newAlertDetected ? [1, 1.15, 1] : [1, 1.08, 1],
+          rotate: [0, 5, -5, 0],
           boxShadow: newAlertDetected ? [
-            '0 10px 50px rgba(59, 130, 246, 1)',
-            '0 10px 60px rgba(59, 130, 246, 0.8)',
-            '0 10px 50px rgba(59, 130, 246, 1)'
+            '0 0 60px rgba(59, 130, 246, 1), 0 0 100px rgba(6, 182, 212, 0.8)',
+            '0 0 80px rgba(59, 130, 246, 1), 0 0 120px rgba(6, 182, 212, 1)',
+            '0 0 60px rgba(59, 130, 246, 1), 0 0 100px rgba(6, 182, 212, 0.8)'
           ] : [
-            '0 10px 40px rgba(59, 130, 246, 0.6)',
-            '0 10px 50px rgba(59, 130, 246, 0.8)',
-            '0 10px 40px rgba(59, 130, 246, 0.6)'
-          ],
-          scale: newAlertDetected ? [1, 1.1, 1] : 1
+            '0 0 40px rgba(59, 130, 246, 0.8), 0 0 80px rgba(6, 182, 212, 0.5)',
+            '0 0 60px rgba(59, 130, 246, 1), 0 0 100px rgba(6, 182, 212, 0.7)',
+            '0 0 40px rgba(59, 130, 246, 0.8), 0 0 80px rgba(6, 182, 212, 0.5)'
+          ]
         }}
         transition={{
-          boxShadow: {
-            duration: newAlertDetected ? 0.5 : 2,
+          scale: {
+            duration: newAlertDetected ? 0.6 : 2,
             repeat: Infinity,
             ease: "easeInOut"
           },
-          scale: {
-            duration: 0.5,
-            repeat: newAlertDetected ? Infinity : 0
+          rotate: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          },
+          boxShadow: {
+            duration: newAlertDetected ? 0.8 : 2,
+            repeat: Infinity,
+            ease: "easeInOut"
           }
         }}
         aria-label="Whale Alerts"
       >
-        <div className="relative">
-          <span className="text-3xl">🐋</span>
+        {/* Outer pulsing ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 opacity-40"
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.4, 0.1, 0.4]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeOut"
+          }}
+        />
+
+        {/* Middle pulsing ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 opacity-30"
+          animate={{
+            scale: [1, 1.6, 1],
+            opacity: [0.3, 0, 0.3]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeOut",
+            delay: 0.3
+          }}
+        />
+
+        <div className="relative z-10">
+          <span className="text-4xl drop-shadow-lg">🐋</span>
           {newAlertDetected && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+              className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"
             >
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             </motion.div>
           )}
+
+          {/* "NEW" badge when alerts detected */}
+          {newAlertDetected && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap shadow-lg"
+            >
+              NEW ALERT!
+            </motion.div>
+          )}
         </div>
       </motion.button>
+
 
       {/* Popup Panel */}
       <AnimatePresence>
